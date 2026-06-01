@@ -1,0 +1,32 @@
+# Build
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# .NET
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# IDE
+.vs/
+.idea/
+*.iml
+
+# Env & secrets
+.env
+appsettings.*.local.json
+secrets.json
+
+# Java (removed — project uses .NET)
+target/
+pom.xml
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/services/" />
+  <Folder Name="/services/user-service/" />
+  <Folder Name="/services/user-service/src/">
+    <Project Path="services/user-service/src/Nexus.UserService/Nexus.UserService.csproj" />
+  </Folder>
+</Solution>

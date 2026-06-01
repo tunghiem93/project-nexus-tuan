@@ -1,0 +1,162 @@
+// Nexus_User — User Service
+// Paste vào dbdiagram.io để tạo diagram riêng module User
+
+Table privileges {
+  id uuid [pk]
+  code varchar(100) [unique, not null]
+  description text
+  created_at datetime [not null]
+}
+
+Table roles {
+  id uuid [pk]
+  code varchar(50) [unique, not null]
+  name varchar(100) [not null]
+  description text
+  is_system boolean [not null, default: false]
+  deleted_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table role_privileges {
+  role_id uuid [not null]
+  privilege_id uuid [not null]
+  indexes { (role_id, privilege_id) [pk] }
+}
+
+Table users {
+  id uuid [pk]
+  email varchar(255) [unique, not null]
+  phone varchar(20) [not null]
+  username varchar(100) [unique, not null]
+  password_hash varchar(255) [not null]
+  full_name varchar(200) [not null]
+  identify_number varchar(50) [not null]
+  gender varchar(20) [not null, default: 'UNSPECIFIED']
+  address text [not null]
+  date_of_birth date [not null]
+  status varchar(20) [not null, default: 'ACTIVE']
+  deleted_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+  created_by uuid
+  updated_by uuid
+}
+
+Table user_roles {
+  user_id uuid [not null]
+  role_id uuid [not null]
+  assigned_at datetime [not null]
+  assigned_by uuid
+  indexes { (user_id, role_id) [pk] }
+}
+
+Table user_sessions {
+  id uuid [pk]
+  user_id uuid [not null]
+  refresh_token varchar(512) [unique, not null]
+  access_jti varchar(64)
+  ip_address varchar(45)
+  user_agent text
+  expires_at datetime [not null]
+  revoked_at datetime
+  created_at datetime [not null]
+}
+
+Table login_attempts {
+  id uuid [pk]
+  username varchar(100) [not null]
+  ip_address varchar(45)
+  success boolean [not null]
+  attempted_at datetime [not null]
+}
+
+Table password_reset_tokens {
+  id uuid [pk]
+  user_id uuid [not null]
+  token_hash varchar(255) [unique, not null]
+  expires_at datetime [not null]
+  used_at datetime
+  created_at datetime [not null]
+}
+
+Table reputation_scores {
+  user_id uuid [pk]
+  score decimal(5,2) [not null, default: 50]
+  trust_level varchar(20) [not null, default: 'MEDIUM']
+  total_ratings int [not null, default: 0]
+  avg_rating decimal(3,2)
+  penalty_count int [not null, default: 0]
+  last_calculated_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table reputation_ratings {
+  id uuid [pk]
+  rater_id uuid [not null]
+  ratee_id uuid [not null]
+  transaction_type varchar(20) [not null]
+  transaction_ref_id uuid [not null]
+  score smallint [not null]
+  comment text
+  dispute_flag boolean [not null, default: false]
+  created_at datetime [not null]
+  indexes { (rater_id, transaction_type, transaction_ref_id) [unique] }
+}
+
+Table reputation_penalties {
+  id uuid [pk]
+  user_id uuid [not null]
+  penalty_type varchar(50) [not null]
+  score_delta decimal(5,2) [not null]
+  reason text [not null]
+  reference_type varchar(30)
+  reference_id uuid
+  applied_by uuid
+  applied_at datetime [not null]
+}
+
+Table reputation_transaction_summary {
+  user_id uuid [pk]
+  completed_orders int [not null, default: 0]
+  cancelled_orders int [not null, default: 0]
+  auctions_won int [not null, default: 0]
+  auctions_lost_payment int [not null, default: 0]
+  updated_at datetime [not null]
+}
+
+Table audit_logs {
+  id uuid [pk]
+  actor_id uuid
+  action varchar(100) [not null]
+  entity_type varchar(50) [not null]
+  entity_id uuid
+  old_value text
+  new_value text
+  ip_address varchar(45)
+  created_at datetime [not null]
+}
+
+Table outbox_events {
+  id uuid [pk]
+  aggregate_type varchar(50) [not null]
+  aggregate_id uuid [not null]
+  event_type varchar(100) [not null]
+  payload text [not null]
+  published_at datetime
+  created_at datetime [not null]
+}
+
+Ref: role_privileges.role_id > roles.id
+Ref: role_privileges.privilege_id > privileges.id
+Ref: user_roles.user_id > users.id
+Ref: user_roles.role_id > roles.id
+Ref: user_sessions.user_id > users.id
+Ref: password_reset_tokens.user_id > users.id
+Ref: reputation_scores.user_id - users.id
+Ref: reputation_ratings.rater_id > users.id
+Ref: reputation_ratings.ratee_id > users.id
+Ref: reputation_penalties.user_id > users.id
+Ref: reputation_penalties.applied_by > users.id
+Ref: reputation_transaction_summary.user_id - users.id

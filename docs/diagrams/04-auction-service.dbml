@@ -1,0 +1,81 @@
+// Nexus_Auction — Auction Service
+
+Table auctions {
+  id uuid [pk]
+  product_id uuid [not null]
+  seller_id uuid [not null]
+  sku_code varchar(100) [not null]
+  status varchar(20) [not null, default: 'DRAFT']
+  visibility varchar(20) [not null, default: 'PUBLIC']
+  starting_price decimal(14,2) [not null]
+  bid_increment decimal(14,2) [not null, default: 10]
+  current_price decimal(14,2)
+  current_bidder_id uuid
+  bid_count int [not null, default: 0]
+  scheduled_start_at datetime [not null]
+  scheduled_end_at datetime [not null]
+  actual_start_at datetime
+  actual_end_at datetime
+  extension_count int [not null, default: 0]
+  inventory_reservation_id uuid
+  cancelled_by uuid
+  cancel_reason text
+  version bigint [not null, default: 0]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table auction_bids {
+  id uuid [pk]
+  auction_id uuid [not null]
+  bidder_id uuid [not null]
+  amount decimal(14,2) [not null]
+  is_winning boolean [not null, default: false]
+  idempotency_key varchar(64) [unique]
+  placed_at datetime [not null]
+}
+
+Table auction_extensions {
+  id uuid [pk]
+  auction_id uuid [not null]
+  trigger_bid_id uuid [not null]
+  previous_end_at datetime [not null]
+  new_end_at datetime [not null]
+  extension_minutes int [not null, default: 5]
+  created_at datetime [not null]
+}
+
+Table auction_settlements {
+  id uuid [pk]
+  auction_id uuid [unique, not null]
+  status varchar(20) [not null]
+  winner_id uuid
+  winning_bid_id uuid
+  final_price decimal(14,2)
+  payment_deadline datetime
+  settled_at datetime
+  settlement_payload text
+  idempotency_key varchar(64) [unique]
+  created_at datetime [not null]
+}
+
+Table processed_events {
+  event_id varchar(100) [pk]
+  processed_at datetime [not null]
+}
+
+Table outbox_events {
+  id uuid [pk]
+  aggregate_type varchar(50) [not null]
+  aggregate_id uuid [not null]
+  event_type varchar(100) [not null]
+  payload text [not null]
+  published_at datetime
+  created_at datetime [not null]
+}
+
+Ref: auction_bids.auction_id > auctions.id
+Ref: auction_extensions.auction_id > auctions.id
+Ref: auction_extensions.trigger_bid_id > auction_bids.id
+Ref: auction_settlements.auction_id - auctions.id
+Ref: auction_settlements.winning_bid_id > auction_bids.id

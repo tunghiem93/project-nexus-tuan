@@ -1,0 +1,665 @@
+openapi: 3.0.3
+info:
+  title: Project Nexus — Commerce Service API
+  version: 1.0.0
+  description: |
+    Shopping cart, checkout, orders, payments, refunds.
+    Integrates with Fulfillment (inventory/shipping quote) and Stripe (payment).
+servers:
+  - url: http://localhost:8083/api/v1
+    description: Local dev
+
+tags:
+  - name: Cart
+  - name: Checkout
+  - name: Orders
+  - name: Payments
+  - name: Health
+
+paths:
+  /carts/me:
+    get:
+      tags: [Cart]
+      summary: View active cart (CART.VIEW)
+      operationId: getMyCart
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+        '404':
+          description: No active cart — system may auto-create
+    post:
+      tags: [Cart]
+      summary: Create or get cart (CART.CREATE)
+      operationId: createCart
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+
+  /carts/guest:
+    post:
+      tags: [Cart]
+      summary: Create guest cart (ALLOW_GUEST_CART)
+      operationId: createGuestCart
+      security: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestCartResponse'
+
+  /carts/{cartId}/items:
+    post:
+      tags: [Cart]
+      summary: Add item (CART.UPDATE)
+      operationId: addCartItem
+      parameters:
+        - $ref: '#/components/parameters/CartIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItemRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+
+  /carts/{cartId}/items/{itemId}:
+    put:
+      tags: [Cart]
+      summary: Update item quantity (CART.UPDATE)
+      operationId: updateCartItem
+      parameters:
+        - $ref: '#/components/parameters/CartIdParam'
+        - $ref: '#/components/parameters/ItemIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+    delete:
+      tags: [Cart]
+      summary: Remove item (CART.REMOVE_ITEM)
+      operationId: removeCartItem
+      parameters:
+        - $ref: '#/components/parameters/CartIdParam'
+        - $ref: '#/components/parameters/ItemIdParam'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+
+  /carts/{cartId}/validate:
+    post:
+      tags: [Cart]
+      summary: Validate cart before checkout
+      operationId: validateCart
+      parameters:
+        - $ref: '#/components/parameters/CartIdParam'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartValidationResponse'
+
+  /checkout/start:
+    post:
+      tags: [Checkout]
+      summary: Start checkout (CHECKOUT.START)
+      operationId: startCheckout
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartCheckoutRequest'
+      responses:
+        '201':
+          description: Checkout session created (timeout 15 min)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutSessionResponse'
+        '409':
+          description: Cart invalid or price changed
+
+  /checkout/{sessionId}/confirm:
+    post:
+      tags: [Checkout]
+      summary: Confirm checkout and create order (ORDER.CREATE)
+      operationId: confirmCheckout
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+
+  /orders:
+    get:
+      tags: [Orders]
+      summary: List orders (ORDER.LIST)
+      operationId: listOrders
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedOrderResponse'
+
+  /orders/{orderId}:
+    get:
+      tags: [Orders]
+      summary: View order (ORDER.VIEW)
+      operationId: getOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderIdParam'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetailResponse'
+
+  /orders/{orderId}/cancel:
+    post:
+      tags: [Orders]
+      summary: Cancel order (ORDER.CANCEL)
+      operationId: cancelOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderIdParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+
+  /orders/{orderId}/refunds:
+    post:
+      tags: [Orders]
+      summary: Request/process refund (ORDER.REFUND)
+      operationId: createRefund
+      parameters:
+        - $ref: '#/components/parameters/OrderIdParam'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundRequest'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundResponse'
+
+  /orders/from-auction:
+    post:
+      tags: [Orders]
+      summary: Create order from auction settlement (internal/event-driven)
+      operationId: createOrderFromAuction
+      description: Called by message consumer when AuctionWon event received
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuctionOrderRequest'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+
+  /payments/webhooks/stripe:
+    post:
+      tags: [Payments]
+      summary: Stripe payment webhook
+      operationId: stripeWebhook
+      security: []
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed (idempotent)
+
+  /payments/{paymentId}:
+    get:
+      tags: [Payments]
+      summary: Get payment status
+      operationId: getPayment
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Service health
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Healthy
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+    CartIdParam:
+      name: cartId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ItemIdParam:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    OrderIdParam:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      schema:
+        type: string
+      description: Required for checkout confirm, order create, refund
+
+  schemas:
+    OrderStatus:
+      type: string
+      enum:
+        - PENDING_PAYMENT
+        - PAID
+        - PROCESSING
+        - PARTIALLY_SHIPPED
+        - SHIPPED
+        - DELIVERED
+        - COMPLETED
+        - CANCELLED
+        - REFUND_REQUESTED
+        - REFUNDED
+        - PAYMENT_FAILED
+
+    AddCartItemRequest:
+      type: object
+      required: [productId, skuCode, quantity]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        skuCode:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+
+    CartItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        skuCode:
+          type: string
+        unitPrice:
+          type: number
+        quantity:
+          type: integer
+        lineTotal:
+          type: number
+
+    CartResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItemResponse'
+        subtotal:
+          type: number
+        taxAmount:
+          type: number
+        discountAmount:
+          type: number
+        shippingEstimate:
+          type: number
+        expiresAt:
+          type: string
+          format: date-time
+
+    GuestCartResponse:
+      allOf:
+        - $ref: '#/components/schemas/CartResponse'
+        - type: object
+          properties:
+            guestToken:
+              type: string
+
+    CartValidationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+
+    StartCheckoutRequest:
+      type: object
+      required: [cartId, shippingAddress]
+      properties:
+        cartId:
+          type: string
+          format: uuid
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        paymentMethod:
+          type: string
+          default: STRIPE
+
+    Address:
+      type: object
+      required: [fullName, phone, line1, city, district]
+      properties:
+        fullName:
+          type: string
+        phone:
+          type: string
+        line1:
+          type: string
+        line2:
+          type: string
+        ward:
+          type: string
+        district:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+
+    CheckoutSessionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        cartId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        priceSnapshot:
+          type: object
+        expiresAt:
+          type: string
+          format: date-time
+        paymentClientSecret:
+          type: string
+          description: Stripe client secret for frontend
+
+    OrderResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        totalAmount:
+          type: number
+        currency:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    OrderDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/OrderResponse'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItemResponse'
+            statusHistory:
+              type: array
+              items:
+                $ref: '#/components/schemas/StatusHistoryEntry'
+            shippingAddress:
+              $ref: '#/components/schemas/Address'
+
+    OrderItemResponse:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        skuCode:
+          type: string
+        unitPrice:
+          type: number
+        quantity:
+          type: integer
+        lineTotal:
+          type: number
+
+    StatusHistoryEntry:
+      type: object
+      properties:
+        fromStatus:
+          $ref: '#/components/schemas/OrderStatus'
+        toStatus:
+          $ref: '#/components/schemas/OrderStatus'
+        changedAt:
+          type: string
+          format: date-time
+        reason:
+          type: string
+
+    PagedOrderResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderResponse'
+        totalElements:
+          type: integer
+        message:
+          type: string
+          example: No Data
+
+    RefundRequest:
+      type: object
+      required: [amount, reason]
+      properties:
+        amount:
+          type: number
+        reason:
+          type: string
+
+    RefundResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+        status:
+          type: string
+
+    AuctionOrderRequest:
+      type: object
+      required: [settlementId, auctionId, buyerId, sellerId, finalPrice, skuCode, productId]
+      properties:
+        settlementId:
+          type: string
+          format: uuid
+        auctionId:
+          type: string
+          format: uuid
+        buyerId:
+          type: string
+          format: uuid
+        sellerId:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        skuCode:
+          type: string
+        finalPrice:
+          type: number
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        idempotencyKey:
+          type: string
+
+    PaymentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        amount:
+          type: number
+        providerPaymentId:
+          type: string
+
+security:
+  - bearerAuth: []

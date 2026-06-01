@@ -1,0 +1,63 @@
+// Nexus_Catalog — Catalog Service
+
+Table categories {
+  id uuid [pk]
+  parent_id uuid
+  name varchar(200) [not null]
+  slug varchar(200) [unique, not null]
+  description text
+  level smallint [not null]
+  sort_order int [not null, default: 0]
+  deleted_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table products {
+  id uuid [pk]
+  seller_id uuid [not null, note: 'ref User Service']
+  sku_code varchar(100) [not null]
+  name varchar(300) [not null]
+  slug varchar(300) [not null]
+  description text
+  base_price decimal(14,2) [not null]
+  currency char(3) [not null, default: 'VND']
+  status varchar(20) [not null, default: 'DRAFT']
+  auction_enabled boolean [not null, default: true]
+  category_id uuid [not null]
+  deleted_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+  indexes { (seller_id, sku_code) [unique] }
+}
+
+Table product_images {
+  id uuid [pk]
+  product_id uuid [not null]
+  url text [not null]
+  sort_order smallint [not null, default: 0]
+  created_at datetime [not null]
+}
+
+Table product_discovery_stats {
+  product_id uuid [pk]
+  view_count bigint [not null, default: 0]
+  order_count bigint [not null, default: 0]
+  popularity_score decimal(10,4) [not null, default: 0]
+  updated_at datetime [not null]
+}
+
+Table outbox_events {
+  id uuid [pk]
+  aggregate_type varchar(50) [not null]
+  aggregate_id uuid [not null]
+  event_type varchar(100) [not null]
+  payload text [not null]
+  published_at datetime
+  created_at datetime [not null]
+}
+
+Ref: categories.parent_id > categories.id
+Ref: products.category_id > categories.id
+Ref: product_images.product_id > products.id
+Ref: product_discovery_stats.product_id - products.id

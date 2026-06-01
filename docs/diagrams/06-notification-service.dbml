@@ -1,0 +1,82 @@
+// Nexus_Notification — Notification Service
+
+Table event_logs {
+  id uuid [pk]
+  event_type varchar(100) [not null]
+  event_message text [not null]
+  operator_id uuid
+  operator_name varchar(200)
+  source_service varchar(50)
+  payload text
+  correlation_id varchar(64)
+  created_at datetime [not null]
+}
+
+Table processed_events {
+  event_id varchar(100) [pk]
+  processed_at datetime [not null]
+}
+
+Table notification_templates {
+  id uuid [pk]
+  event_type varchar(100) [not null]
+  channel varchar(10) [not null]
+  subject varchar(300)
+  body_template text [not null]
+  is_transactional boolean [not null, default: false]
+  created_at datetime [not null]
+  indexes { (event_type, channel) [unique] }
+}
+
+Table notifications {
+  id uuid [pk]
+  user_id uuid [not null]
+  event_type varchar(100) [not null]
+  title varchar(300) [not null]
+  body text [not null]
+  is_transactional boolean [not null, default: false]
+  metadata text
+  created_at datetime [not null]
+}
+
+Table notification_deliveries {
+  id uuid [pk]
+  notification_id uuid [not null]
+  channel varchar(10) [not null]
+  status varchar(10) [not null, default: 'PENDING']
+  attempt_count smallint [not null, default: 0]
+  last_error text
+  sent_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table notification_preferences {
+  id uuid [pk]
+  user_id uuid [not null]
+  event_type varchar(100) [not null]
+  channel varchar(10) [not null]
+  enabled boolean [not null, default: true]
+  updated_at datetime [not null]
+  indexes { (user_id, event_type, channel) [unique] }
+}
+
+Table broker_health_logs {
+  id uuid [pk]
+  broker_name varchar(50) [not null, default: 'rabbitmq']
+  status varchar(20) [not null]
+  detail text
+  checked_at datetime [not null]
+}
+
+Table outbox_events {
+  id uuid [pk]
+  aggregate_type varchar(50) [not null]
+  aggregate_id uuid [not null]
+  event_type varchar(100) [not null]
+  payload text [not null]
+  published_at datetime
+  created_at datetime [not null]
+}
+
+Ref: notification_deliveries.notification_id > notifications.id
