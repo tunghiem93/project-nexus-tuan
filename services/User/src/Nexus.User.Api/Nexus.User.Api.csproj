@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Nexus.User.Api</RootNamespace>
+    <AssemblyName>Nexus.User.Api</AssemblyName>
+    <LaunchBrowser>true</LaunchBrowser>
+    <LaunchUrl>swagger</LaunchUrl>
+    <ApplicationUrl>http://localhost:8081</ApplicationUrl>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nexus.User.Application\Nexus.User.Application.csproj" />
+    <ProjectReference Include="..\Nexus.User.Infrastructure\Nexus.User.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Nexus.AspNetCore\Nexus.AspNetCore.csproj" />
+  </ItemGroup>
+</Project>

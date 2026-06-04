@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Nexus.Auction.Api</RootNamespace>
+    <AssemblyName>Nexus.Auction.Api</AssemblyName>
+    <LaunchBrowser>true</LaunchBrowser>
+    <LaunchUrl>swagger</LaunchUrl>
+    <ApplicationUrl>http://localhost:8084</ApplicationUrl>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nexus.Auction.Application\Nexus.Auction.Application.csproj" />
+    <ProjectReference Include="..\Nexus.Auction.Infrastructure\Nexus.Auction.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Nexus.AspNetCore\Nexus.AspNetCore.csproj" />
+  </ItemGroup>
+</Project>

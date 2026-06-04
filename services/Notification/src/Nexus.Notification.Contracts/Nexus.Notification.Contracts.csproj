@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Nexus.Notification.Contracts</RootNamespace>
+    <AssemblyName>Nexus.Notification.Contracts</AssemblyName>
+  </PropertyGroup>
+</Project>

@@ -27,12 +27,12 @@ if (-not $ready) { throw "SQL Server not ready on $Server" }
 Invoke-SqlFile -Database "master" -FilePath (Join-Path $PSScriptRoot "01-create-databases.sql")
 
 $schemas = @(
-    @{ Db = "Nexus_User";          File = "services/user-service/db/schema.sql" },
-    @{ Db = "Nexus_Catalog";       File = "services/catalog-service/db/schema.sql" },
-    @{ Db = "Nexus_Commerce";      File = "services/commerce-service/db/schema.sql" },
-    @{ Db = "Nexus_Auction";       File = "services/auction-service/db/schema.sql" },
-    @{ Db = "Nexus_Fulfillment";   File = "services/fulfillment-service/db/schema.sql" },
-    @{ Db = "Nexus_Notification";  File = "services/notification-service/db/schema.sql" }
+    @{ Db = "Nexus_User";          File = "services/User/db/schema.sql" },
+    @{ Db = "Nexus_Catalog";       File = "services/Catalog/db/schema.sql" },
+    @{ Db = "Nexus_Commerce";      File = "services/Commerce/db/schema.sql" },
+    @{ Db = "Nexus_Auction";       File = "services/Auction/db/schema.sql" },
+    @{ Db = "Nexus_Fulfillment";   File = "services/Fulfillment/db/schema.sql" },
+    @{ Db = "Nexus_Notification";  File = "services/Notification/db/schema.sql" }
 )
 
 foreach ($s in $schemas) {

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Nexus.AspNetCore</RootNamespace>
+    <AssemblyName>Nexus.AspNetCore</AssemblyName>
+    <Description>Shared ASP.NET Core host conventions for Nexus APIs.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nexus.Persistence\Nexus.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

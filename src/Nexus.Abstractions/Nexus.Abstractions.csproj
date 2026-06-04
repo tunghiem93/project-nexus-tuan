@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Nexus.Abstractions</RootNamespace>
+    <AssemblyName>Nexus.Abstractions</AssemblyName>
+    <Description>Domain primitives and persistence contracts (no EF dependency).</Description>
+  </PropertyGroup>
+
+</Project>
