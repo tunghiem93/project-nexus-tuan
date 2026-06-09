@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <RootNamespace>Nexus.Catalog.Api</RootNamespace>
     <AssemblyName>Nexus.Catalog.Api</AssemblyName>

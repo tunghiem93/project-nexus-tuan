@@ -14,6 +14,7 @@ public class UserAccount : Entity, IAuditableEntity
     public string Address { get; set; } = string.Empty;
     public DateOnly DateOfBirth { get; set; }
     public string Status { get; set; } = Enums.UserStatus.Active;
+    public DateTimeOffset? EmailVerifiedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
@@ -21,4 +22,7 @@ public class UserAccount : Entity, IAuditableEntity
     public Guid? UpdatedBy { get; set; }
 
     public ICollection<UserRole> UserRoles { get; set; } = [];
+    public ICollection<UserSession> Sessions { get; set; } = [];
+    public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = [];
+    public ICollection<UserPreference> Preferences { get; set; } = [];
 }

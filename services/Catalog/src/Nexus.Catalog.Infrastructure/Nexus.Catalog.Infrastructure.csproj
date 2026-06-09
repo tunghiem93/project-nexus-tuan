@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Nexus.Catalog.Infrastructure</RootNamespace>
     <AssemblyName>Nexus.Catalog.Infrastructure</AssemblyName>

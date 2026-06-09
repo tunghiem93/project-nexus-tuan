@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <RootNamespace>Nexus.Auction.Api</RootNamespace>
     <AssemblyName>Nexus.Auction.Api</AssemblyName>

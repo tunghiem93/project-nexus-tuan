@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Nexus.Notification.Domain</RootNamespace>
     <AssemblyName>Nexus.Notification.Domain</AssemblyName>

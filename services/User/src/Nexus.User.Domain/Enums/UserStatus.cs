@@ -1,4 +1,4 @@
-﻿namespace Nexus.User.Domain.Enums;
+namespace Nexus.User.Domain.Enums;
 
 public static class UserStatus
 {

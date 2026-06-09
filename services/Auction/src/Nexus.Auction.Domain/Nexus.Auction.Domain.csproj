@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Nexus.Auction.Domain</RootNamespace>
     <AssemblyName>Nexus.Auction.Domain</AssemblyName>

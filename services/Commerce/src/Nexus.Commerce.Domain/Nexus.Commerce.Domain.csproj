@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Nexus.Commerce.Domain</RootNamespace>
     <AssemblyName>Nexus.Commerce.Domain</AssemblyName>

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package nexus.user;
+
+option csharp_namespace = "Nexus.User.Api.Grpc";
+
+service UserGrpc {
+  rpc GetUserById(GetUserByIdRequest) returns (GetUserByIdResponse);
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+}
+
+message GetUserByIdRequest {
+  string id = 1;
+}
+
+message GetUserByIdResponse {
+  string id = 1;
+  string email = 2;
+  string username = 3;
+  string fullName = 4;
+  string status = 5;
+}
+
+message ValidateTokenRequest {
+  string accessToken = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string userId = 2;
+  string role = 3;
+  repeated string scope = 4;
+}

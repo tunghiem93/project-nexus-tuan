@@ -11,6 +11,9 @@ public class UserDbContext(DbContextOptions<UserDbContext> options) : NexusDbCon
     public DbSet<Privilege> Privileges => Set<Privilege>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RolePrivilege> RolePrivileges => Set<RolePrivilege>();
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

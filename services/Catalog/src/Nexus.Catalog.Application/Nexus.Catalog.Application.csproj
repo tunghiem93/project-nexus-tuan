@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Nexus.Catalog.Application</RootNamespace>
     <AssemblyName>Nexus.Catalog.Application</AssemblyName>

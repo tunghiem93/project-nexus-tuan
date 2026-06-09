@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <RootNamespace>Nexus.User.Api</RootNamespace>
     <AssemblyName>Nexus.User.Api</AssemblyName>
@@ -10,5 +10,19 @@
     <ProjectReference Include="..\Nexus.User.Application\Nexus.User.Application.csproj" />
     <ProjectReference Include="..\Nexus.User.Infrastructure\Nexus.User.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\..\src\Nexus.AspNetCore\Nexus.AspNetCore.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="BCrypt.Net-Next" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+  </ItemGroup>
+  <ItemGroup>
+    <Protobuf Include="Protos\user.proto" GrpcServices="Server" />
   </ItemGroup>
 </Project>

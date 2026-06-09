@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Nexus.User.Infrastructure</RootNamespace>
     <AssemblyName>Nexus.User.Infrastructure</AssemblyName>

@@ -11,8 +11,13 @@ public static class PersistenceExtensions
         string connectionString)
         where TContext : NexusDbContext
     {
+
         services.AddDbContext<TContext>(options => options.UseSqlServer(connectionString));
+
+        services.AddScoped<NexusDbContext>(sp => sp.GetRequiredService<TContext>());
+
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
+
         return services;
     }
 }

@@ -21,6 +21,7 @@ public class UserAccountConfiguration : IEntityTypeConfiguration<UserAccount>
         builder.Property(u => u.Address).HasColumnName("address").IsRequired();
         builder.Property(u => u.DateOfBirth).HasColumnName("date_of_birth");
         builder.Property(u => u.Status).HasColumnName("status").HasMaxLength(20).IsRequired();
+        builder.Property(u => u.EmailVerifiedAt).HasColumnName("email_verified_at");
         builder.Property(u => u.DeletedAt).HasColumnName("deleted_at");
         builder.Property(u => u.CreatedAt).HasColumnName("created_at");
         builder.Property(u => u.UpdatedAt).HasColumnName("updated_at");
