@@ -15,6 +15,6 @@ public class UserQueryService(IRepository<UserAccount> userRepository) : IUserQu
 
         return user is null
             ? null
-            : new UserSummaryDto(user.Id, user.Email, user.Username, user.FullName, user.Status);
+            : new UserSummaryDto(user.Id, user.Email, user.FullName, user.Status);
     }
 }

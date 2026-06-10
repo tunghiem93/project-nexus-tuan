@@ -8,13 +8,13 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
 {
     public void Configure(EntityTypeBuilder<Role> builder)
     {
-        builder.ToTable("roles");
+        builder.ToTable("Role");
         builder.HasKey(r => r.Id);
-        builder.Property(r => r.Code).HasColumnName("code").HasMaxLength(50).IsRequired();
-        builder.Property(r => r.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
-        builder.Property(r => r.Description).HasColumnName("description");
-        builder.Property(r => r.IsSystem).HasColumnName("is_system");
-        builder.Property(r => r.DeletedAt).HasColumnName("deleted_at");
+        builder.Property(r => r.Id).HasColumnName("role_id");
+        builder.Property(r => r.Code).HasColumnName("role_code").HasMaxLength(50).IsRequired();
+        builder.Property(r => r.Name).HasColumnName("role_name").HasMaxLength(100).IsRequired();
+        builder.Property(r => r.Description).HasColumnName("role_description");
+        builder.Property(r => r.IsDeleted).HasColumnName("is_deleted").IsRequired();
         builder.Property(r => r.CreatedAt).HasColumnName("created_at");
         builder.Property(r => r.UpdatedAt).HasColumnName("updated_at");
         builder.HasIndex(r => r.Code).IsUnique();

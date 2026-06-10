@@ -33,7 +33,6 @@ public class UserGrpcService : UserGrpc.UserGrpcBase
         {
             Id = user.Id.ToString(),
             Email = user.Email,
-            Username = user.Username,
             FullName = user.FullName,
             Status = user.Status
         };

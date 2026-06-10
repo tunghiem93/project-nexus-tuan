@@ -16,9 +16,8 @@ message GetUserByIdRequest {
 message GetUserByIdResponse {
   string id = 1;
   string email = 2;
-  string username = 3;
-  string fullName = 4;
-  string status = 5;
+  string fullName = 3;
+  string status = 4;
 }
 
 message ValidateTokenRequest {

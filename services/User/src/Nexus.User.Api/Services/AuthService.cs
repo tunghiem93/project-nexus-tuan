@@ -34,24 +34,26 @@ public class AuthService : IAuthService
 
     public async Task RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
-        if (await _dbContext.Users.AnyAsync(u => u.Email == request.Email || u.Phone == request.Phone || u.Username == request.Username, cancellationToken))
+        if (await _dbContext.Users.AnyAsync(u => u.Email == request.Email || u.PhoneNumber == request.Phone, cancellationToken))
         {
-            throw new InvalidOperationException("Email, phone or username already exists.");
+            throw new InvalidOperationException("Email or phone already exists.");
         }
 
         var user = new UserAccount
         {
             Id = Guid.NewGuid(),
             Email = request.Email,
-            Phone = request.Phone,
-            Username = request.Username,
+            PhoneNumber = request.Phone,
             PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(request.Password),
             FullName = request.FullName,
-            IdentifyNumber = request.IdentifyNumber,
-            Gender = string.IsNullOrWhiteSpace(request.Gender) ? Domain.Enums.Gender.Unspecified : request.Gender,
-            Address = request.Address,
+            IdentifyNumber = string.IsNullOrWhiteSpace(request.IdentifyNumber) ? null : request.IdentifyNumber,
+            Gender = string.IsNullOrWhiteSpace(request.Gender) ? null : request.Gender,
+            Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address,
             DateOfBirth = request.DateOfBirth,
             Status = Domain.Enums.UserStatus.Active,
+            IsEmailVerified = false,
+            FailedLoginCount = 0,
+            IsDeleted = false,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
@@ -64,7 +66,7 @@ public class AuthService : IAuthService
                 Id = Guid.NewGuid(),
                 Code = "BUYER",
                 Name = "Buyer",
-                IsSystem = true,
+                IsDeleted = false,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
@@ -73,6 +75,7 @@ public class AuthService : IAuthService
 
         var userRole = new UserRole
         {
+            Id = Guid.NewGuid(),
             User = user,
             Role = role,
             AssignedAt = DateTimeOffset.UtcNow
@@ -82,6 +85,18 @@ public class AuthService : IAuthService
         _dbContext.UserRoles.Add(userRole);
 
         var verificationToken = _jwtTokenService.CreateEmailVerificationToken(user);
+        _dbContext.EmailVerifications.Add(new EmailVerification
+        {
+            Id = Guid.NewGuid(),
+            User = user,
+            VerificationTokenHash = HashToken(verificationToken),
+            RequestedAt = DateTimeOffset.UtcNow,
+            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_options.ResetPasswordTokenExpiryMinutes),
+            Status = "PENDING",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+
         _dbContext.OutboxMessages.Add(new Nexus.Abstractions.Outbox.OutboxMessage
         {
             Id = Guid.NewGuid(),
@@ -110,9 +125,23 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Invalid token payload.");
         }
 
+        var verificationHash = HashToken(token);
+        var verification = await _dbContext.EmailVerifications.FirstOrDefaultAsync(v => v.VerificationTokenHash == verificationHash, cancellationToken)
+            ?? throw new InvalidOperationException("Email verification request not found.");
+
+        if (verification.Status != "PENDING" || verification.ExpiresAt < DateTimeOffset.UtcNow)
+        {
+            throw new InvalidOperationException("Verification token is invalid or expired.");
+        }
+
         var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
             ?? throw new InvalidOperationException("User not found.");
 
+        verification.Status = "VERIFIED";
+        verification.VerifiedAt = DateTimeOffset.UtcNow;
+        verification.UpdatedAt = DateTimeOffset.UtcNow;
+
+        user.IsEmailVerified = true;
         user.EmailVerifiedAt = DateTimeOffset.UtcNow;
         user.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -137,26 +166,54 @@ public class AuthService : IAuthService
         var user = await _dbContext.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Email == request.UsernameOrEmail || u.Phone == request.UsernameOrEmail || u.Username == request.UsernameOrEmail, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email == request.UsernameOrEmail || u.PhoneNumber == request.UsernameOrEmail, cancellationToken);
 
-        if (user is null || !BCrypt.Net.BCrypt.EnhancedVerify(request.Password, user.PasswordHash))
+        if (user is null)
         {
             throw new InvalidOperationException("Invalid credentials.");
         }
+
+        if (user.LockedUntil.HasValue && user.LockedUntil > DateTimeOffset.UtcNow)
+        {
+            throw new InvalidOperationException("Account is locked.");
+        }
+
+        if (!BCrypt.Net.BCrypt.EnhancedVerify(request.Password, user.PasswordHash))
+        {
+            user.FailedLoginCount++;
+            user.UpdatedAt = DateTimeOffset.UtcNow;
+            if (user.FailedLoginCount >= 5)
+            {
+                user.Status = Domain.Enums.UserStatus.Locked;
+                user.LockedUntil = DateTimeOffset.UtcNow.AddMinutes(15);
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Invalid credentials.");
+        }
+
+        user.FailedLoginCount = 0;
+        user.LastLoginAt = DateTimeOffset.UtcNow;
+        user.UpdatedAt = DateTimeOffset.UtcNow;
 
         var role = user.UserRoles.Select(u => u.Role.Code).FirstOrDefault() ?? "BUYER";
         var scope = role.ToLowerInvariant();
         var accessToken = _jwtTokenService.CreateAccessToken(user, role, scope, out var accessJti);
         var refreshToken = _jwtTokenService.CreateRefreshToken();
+        var accessHash = HashToken(accessToken);
         var refreshHash = HashToken(refreshToken);
 
         var session = new UserSession
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
-            RefreshTokenHash = refreshHash,
+            TokenHash = accessHash,
             AccessJti = accessJti,
-            ExpiresAt = DateTimeOffset.UtcNow.AddDays(_options.RefreshTokenExpiryDays),
+            RefreshTokenHash = refreshHash,
+            RefreshExpiresAt = DateTimeOffset.UtcNow.AddDays(_options.RefreshTokenExpiryDays),
+            LoginAt = DateTimeOffset.UtcNow,
+            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_options.AccessTokenExpiryMinutes),
+            Status = "ACTIVE",
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
@@ -183,7 +240,7 @@ public class AuthService : IAuthService
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(s => s.RefreshTokenHash == refreshHash, cancellationToken);
 
-        if (session is null || session.RevokedAt.HasValue || session.ExpiresAt < DateTimeOffset.UtcNow)
+        if (session is null || session.Status != "ACTIVE" || session.ExpiresAt < DateTimeOffset.UtcNow)
         {
             throw new InvalidOperationException("Refresh token is invalid or expired.");
         }
@@ -191,26 +248,22 @@ public class AuthService : IAuthService
         var user = session.User;
         var role = user.UserRoles.Select(u => u.Role.Code).FirstOrDefault() ?? "BUYER";
         var scope = role.ToLowerInvariant();
-        var accessToken = _jwtTokenService.CreateAccessToken(user, role, scope, out var newAccessJti);
+        var accessToken = _jwtTokenService.CreateAccessToken(user, role, scope, out var accessJti);
         var newRefreshToken = _jwtTokenService.CreateRefreshToken();
         var newRefreshHash = HashToken(newRefreshToken);
+        var newTokenHash = HashToken(accessToken);
 
-        var oldAccessJti = session.AccessJti;
-        var oldRefreshHash = session.RefreshTokenHash;
-
+        session.TokenHash = newTokenHash;
+        session.AccessJti = accessJti;
         session.RefreshTokenHash = newRefreshHash;
-        session.AccessJti = newAccessJti;
-        session.ExpiresAt = DateTimeOffset.UtcNow.AddDays(_options.RefreshTokenExpiryDays);
+        session.RefreshExpiresAt = DateTimeOffset.UtcNow.AddDays(_options.RefreshTokenExpiryDays);
+        session.ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_options.AccessTokenExpiryMinutes);
         session.UpdatedAt = DateTimeOffset.UtcNow;
 
         _dbContext.UserSessions.Update(session);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        await BlacklistRefreshHashAsync(oldRefreshHash, session.ExpiresAt - DateTimeOffset.UtcNow);
-        if (!string.IsNullOrEmpty(oldAccessJti)) {
-            await BlacklistAccessJtiAsync(oldAccessJti, TimeSpan.FromMinutes(_options.AccessTokenExpiryMinutes));
-        }
-
+        await BlacklistRefreshHashAsync(refreshHash, session.RefreshExpiresAt - DateTimeOffset.UtcNow);
         await CacheSessionAsync(session, user.Id, role, scope);
 
         return new AuthResponse
@@ -237,7 +290,9 @@ public class AuthService : IAuthService
             Id = Guid.NewGuid(),
             UserId = user.Id,
             TokenHash = tokenHash,
+            RequestedAt = DateTimeOffset.UtcNow,
             ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_options.ResetPasswordTokenExpiryMinutes),
+            Status = "PENDING",
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
@@ -263,7 +318,7 @@ public class AuthService : IAuthService
             .Include(t => t.User)
             .FirstOrDefaultAsync(t => t.TokenHash == tokenHash, cancellationToken);
 
-        if (resetToken is null || resetToken.UsedAt.HasValue || resetToken.ExpiresAt < DateTimeOffset.UtcNow)
+        if (resetToken is null || resetToken.Status != "PENDING" || resetToken.ExpiresAt < DateTimeOffset.UtcNow)
         {
             throw new InvalidOperationException("Reset token is invalid or expired.");
         }
@@ -271,13 +326,15 @@ public class AuthService : IAuthService
         var user = resetToken.User;
         user.PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(request.NewPassword);
         user.UpdatedAt = DateTimeOffset.UtcNow;
+        resetToken.Status = "USED";
         resetToken.UsedAt = DateTimeOffset.UtcNow;
         resetToken.UpdatedAt = DateTimeOffset.UtcNow;
 
-        var sessions = await _dbContext.UserSessions.Where(s => s.UserId == user.Id && s.RevokedAt == null).ToListAsync(cancellationToken);
+        var sessions = await _dbContext.UserSessions.Where(s => s.UserId == user.Id && s.Status == "ACTIVE").ToListAsync(cancellationToken);
         foreach (var session in sessions)
         {
-            session.RevokedAt = DateTimeOffset.UtcNow;
+            session.Status = "REVOKED";
+            session.LogoutAt = DateTimeOffset.UtcNow;
             session.UpdatedAt = DateTimeOffset.UtcNow;
             if (!string.IsNullOrWhiteSpace(session.AccessJti))
             {
@@ -305,12 +362,13 @@ public class AuthService : IAuthService
         user.UpdatedAt = DateTimeOffset.UtcNow;
 
         var sessions = await _dbContext.UserSessions
-            .Where(s => s.UserId == user.Id && s.RevokedAt == null && s.AccessJti != accessTokenJti)
+            .Where(s => s.UserId == user.Id && s.Status == "ACTIVE" && s.AccessJti != accessTokenJti)
             .ToListAsync(cancellationToken);
 
         foreach (var session in sessions)
         {
-            session.RevokedAt = DateTimeOffset.UtcNow;
+            session.Status = "REVOKED";
+            session.LogoutAt = DateTimeOffset.UtcNow;
             session.UpdatedAt = DateTimeOffset.UtcNow;
             if (!string.IsNullOrWhiteSpace(session.AccessJti))
             {

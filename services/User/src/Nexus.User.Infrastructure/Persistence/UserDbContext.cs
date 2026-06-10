@@ -13,6 +13,12 @@ public class UserDbContext(DbContextOptions<UserDbContext> options) : NexusDbCon
     public DbSet<RolePrivilege> RolePrivileges => Set<RolePrivilege>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<EmailVerification> EmailVerifications => Set<EmailVerification>();
+    public DbSet<RatingReview> RatingReviews => Set<RatingReview>();
+    public DbSet<ReputationProfile> ReputationProfiles => Set<ReputationProfile>();
+    public DbSet<PenaltyViolation> PenaltyViolations => Set<PenaltyViolation>();
+    public DbSet<ReputationAudit> ReputationAudits => Set<ReputationAudit>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

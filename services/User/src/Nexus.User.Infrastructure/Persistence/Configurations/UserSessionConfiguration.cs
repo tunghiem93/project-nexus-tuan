@@ -8,16 +8,20 @@ public class UserSessionConfiguration : IEntityTypeConfiguration<UserSession>
 {
     public void Configure(EntityTypeBuilder<UserSession> builder)
     {
-        builder.ToTable("user_sessions");
+        builder.ToTable("UserSession");
         builder.HasKey(s => s.Id);
-        builder.Property(s => s.Id).HasColumnName("id");
+        builder.Property(s => s.Id).HasColumnName("session_id");
         builder.Property(s => s.UserId).HasColumnName("user_id");
-        builder.Property(s => s.RefreshTokenHash).HasColumnName("refresh_token").HasMaxLength(512).IsRequired();
+        builder.Property(s => s.TokenHash).HasColumnName("token_hash").HasMaxLength(255).IsRequired();
         builder.Property(s => s.AccessJti).HasColumnName("access_jti").HasMaxLength(64);
+        builder.Property(s => s.RefreshTokenHash).HasColumnName("refresh_token_hash").HasMaxLength(255);
+        builder.Property(s => s.RefreshExpiresAt).HasColumnName("refresh_expires_at");
         builder.Property(s => s.IpAddress).HasColumnName("ip_address").HasMaxLength(45);
-        builder.Property(s => s.UserAgent).HasColumnName("user_agent");
+        builder.Property(s => s.UserAgent).HasColumnName("user_agent").HasMaxLength(500);
+        builder.Property(s => s.LoginAt).HasColumnName("login_at");
         builder.Property(s => s.ExpiresAt).HasColumnName("expires_at");
-        builder.Property(s => s.RevokedAt).HasColumnName("revoked_at");
+        builder.Property(s => s.LogoutAt).HasColumnName("logout_at");
+        builder.Property(s => s.Status).HasColumnName("status").HasMaxLength(20).IsRequired();
         builder.Property(s => s.CreatedAt).HasColumnName("created_at");
         builder.Property(s => s.UpdatedAt).HasColumnName("updated_at");
 
@@ -25,7 +29,7 @@ public class UserSessionConfiguration : IEntityTypeConfiguration<UserSession>
             .WithMany(u => u.Sessions)
             .HasForeignKey(s => s.UserId);
 
-        builder.HasIndex(s => s.RefreshTokenHash).IsUnique();
         builder.HasIndex(s => s.UserId);
+        builder.HasIndex(s => s.TokenHash);
     }
 }
