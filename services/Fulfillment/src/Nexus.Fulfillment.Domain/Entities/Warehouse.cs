@@ -8,6 +8,6 @@ public class Warehouse : Entity, IAuditableEntity
     public string Name { get; set; } = string.Empty;
     public string? Address { get; set; }
     public bool IsActive { get; set; } = true;
-    public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

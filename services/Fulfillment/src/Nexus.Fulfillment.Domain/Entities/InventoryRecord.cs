@@ -8,6 +8,6 @@ public class InventoryRecord : Entity
     public Guid ProductId { get; set; }
     public int QuantityOnHand { get; set; }
     public int QuantityReserved { get; set; }
-    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
     public Warehouse Warehouse { get; set; } = null!;
 }

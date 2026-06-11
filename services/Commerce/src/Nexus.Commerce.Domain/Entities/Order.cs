@@ -9,6 +9,6 @@ public class Order : Entity, IAuditableEntity
     public string Status { get; set; } = "PENDING";
     public decimal TotalAmount { get; set; }
     public string Currency { get; set; } = "VND";
-    public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

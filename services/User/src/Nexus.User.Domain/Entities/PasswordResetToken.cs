@@ -6,12 +6,12 @@ public class PasswordResetToken : Entity, IAuditableEntity
 {
     public Guid UserId { get; set; }
     public string TokenHash { get; set; } = string.Empty;
-    public DateTimeOffset RequestedAt { get; set; }
-    public DateTimeOffset ExpiresAt { get; set; }
-    public DateTimeOffset? UsedAt { get; set; }
+    public DateTime RequestedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? UsedAt { get; set; }
     public string Status { get; set; } = "PENDING";
-    public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     public UserAccount User { get; set; } = null!;
 }

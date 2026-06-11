@@ -10,5 +10,5 @@ public class AuditLog : Entity
     public Guid? TargetRefId { get; set; }
     public string? DetailJson { get; set; }
     public string? IpAddress { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

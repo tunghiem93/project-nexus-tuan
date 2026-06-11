@@ -9,5 +9,5 @@ public class NotificationMessage : Entity
     public string Subject { get; set; } = string.Empty;
     public string Body { get; set; } = string.Empty;
     public string Status { get; set; } = "PENDING";
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

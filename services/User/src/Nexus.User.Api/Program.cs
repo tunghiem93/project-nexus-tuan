@@ -9,13 +9,13 @@ using Nexus.User.Api.Services;
 using Nexus.User.Infrastructure;
 using Nexus.User.Infrastructure.Persistence;
 using Nexus.AspNetCore.Hosting;
-using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddNexusApi("user");
 
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
 builder.Services.AddUserInfrastructure(builder.Configuration);
 builder.Services.AddUserApplication();
 
@@ -23,6 +23,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CurrentUser>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IUserCache, InMemoryUserCache>();
 
 var authOptions = builder.Configuration.GetSection("Auth").Get<AuthOptions>() ?? new AuthOptions();
 var secret = Encoding.UTF8.GetBytes(authOptions.Secret ?? throw new InvalidOperationException("Auth:Secret must be configured."));
@@ -45,12 +47,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 builder.Services.AddGrpc();
-
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-{
-    var configuration = builder.Configuration.GetValue<string>("Redis:Configuration") ?? "localhost:6379";
-    return ConnectionMultiplexer.Connect(configuration);
-});
 
 builder.AddNexusDbHealthCheck<UserDbContext>();
 

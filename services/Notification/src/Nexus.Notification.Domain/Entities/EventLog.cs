@@ -7,5 +7,5 @@ public class EventLog : Entity
     public string EventType { get; set; } = string.Empty;
     public string SourceService { get; set; } = string.Empty;
     public string Payload { get; set; } = string.Empty;
-    public DateTimeOffset ReceivedAt { get; set; }
+    public DateTime ReceivedAt { get; set; }
 }

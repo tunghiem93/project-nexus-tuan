@@ -17,19 +17,25 @@ public class AuthService : IAuthService
 {
     private readonly UserDbContext _dbContext;
     private readonly IJwtTokenService _jwtTokenService;
-    private readonly StackExchange.Redis.IDatabase _cache;
+    private readonly IUserCache _cache;
     private readonly AuthOptions _options;
+    private readonly IEmailSender _emailSender;
+    private readonly EmailOptions _emailOptions;
 
     public AuthService(
         UserDbContext dbContext,
         IJwtTokenService jwtTokenService,
-        StackExchange.Redis.IConnectionMultiplexer redis,
-        IOptions<AuthOptions> authOptions)
+        IUserCache cache,
+        IOptions<AuthOptions> authOptions,
+        IEmailSender emailSender,
+        IOptions<EmailOptions> emailOptions)
     {
         _dbContext = dbContext;
         _jwtTokenService = jwtTokenService;
-        _cache = redis.GetDatabase();
+        _cache = cache;
         _options = authOptions.Value;
+        _emailSender = emailSender;
+        _emailOptions = emailOptions.Value;
     }
 
     public async Task RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
@@ -54,8 +60,8 @@ public class AuthService : IAuthService
             IsEmailVerified = false,
             FailedLoginCount = 0,
             IsDeleted = false,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         var role = await _dbContext.Roles.FirstOrDefaultAsync(r => r.Code == "BUYER", cancellationToken);
@@ -67,8 +73,8 @@ public class AuthService : IAuthService
                 Code = "BUYER",
                 Name = "Buyer",
                 IsDeleted = false,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
             _dbContext.Roles.Add(role);
         }
@@ -78,7 +84,7 @@ public class AuthService : IAuthService
             Id = Guid.NewGuid(),
             User = user,
             Role = role,
-            AssignedAt = DateTimeOffset.UtcNow
+            AssignedAt = DateTime.UtcNow
         };
 
         _dbContext.Users.Add(user);
@@ -90,24 +96,35 @@ public class AuthService : IAuthService
             Id = Guid.NewGuid(),
             User = user,
             VerificationTokenHash = HashToken(verificationToken),
-            RequestedAt = DateTimeOffset.UtcNow,
-            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_options.ResetPasswordTokenExpiryMinutes),
+            RequestedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(_options.EmailVerifyTokenExpiryMinutes),
             Status = "PENDING",
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
         });
 
-        _dbContext.OutboxMessages.Add(new Nexus.Abstractions.Outbox.OutboxMessage
-        {
-            Id = Guid.NewGuid(),
-            AggregateType = "User",
-            AggregateId = user.Id,
-            EventType = "email.verify",
-            Payload = JsonSerializer.Serialize(new { user.Email, token = verificationToken, userId = user.Id }),
-            CreatedAt = DateTimeOffset.UtcNow
-        });
+        //_dbContext.OutboxMessages.Add(new Nexus.Abstractions.Outbox.OutboxMessage
+        //{
+        //    Id = Guid.NewGuid(),
+        //    AggregateType = "User",
+        //    AggregateId = user.Id,
+        //    EventType = "email.verify",
+        //    Payload = JsonSerializer.Serialize(new { user.Email, token = verificationToken, userId = user.Id }),
+        //    CreatedAt = DateTime.UtcNow
+        //});
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await _emailSender.SendEmailAsync(
+                user.Email,
+                "Xác minh email đăng ký",
+                GetEmailVerificationBody(user.FullName, verificationToken));
+
+        }
+        catch (Exception)
+        {
+            throw;
+        }
     }
 
     public async Task VerifyEmailAsync(string token, CancellationToken cancellationToken = default)
@@ -129,7 +146,7 @@ public class AuthService : IAuthService
         var verification = await _dbContext.EmailVerifications.FirstOrDefaultAsync(v => v.VerificationTokenHash == verificationHash, cancellationToken)
             ?? throw new InvalidOperationException("Email verification request not found.");
 
-        if (verification.Status != "PENDING" || verification.ExpiresAt < DateTimeOffset.UtcNow)
+        if (verification.Status != "PENDING" || verification.ExpiresAt < DateTime.UtcNow)
         {
             throw new InvalidOperationException("Verification token is invalid or expired.");
         }
@@ -138,12 +155,11 @@ public class AuthService : IAuthService
             ?? throw new InvalidOperationException("User not found.");
 
         verification.Status = "VERIFIED";
-        verification.VerifiedAt = DateTimeOffset.UtcNow;
-        verification.UpdatedAt = DateTimeOffset.UtcNow;
+        verification.VerifiedAt = DateTime.UtcNow;
 
         user.IsEmailVerified = true;
-        user.EmailVerifiedAt = DateTimeOffset.UtcNow;
-        user.UpdatedAt = DateTimeOffset.UtcNow;
+        user.EmailVerifiedAt = DateTime.UtcNow;
+        user.UpdatedAt = DateTime.UtcNow;
 
         if (!user.Preferences.Any())
         {
@@ -153,8 +169,8 @@ public class AuthService : IAuthService
                 UserId = user.Id,
                 Key = "default_locale",
                 Value = "en-US",
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             });
         }
 
@@ -173,7 +189,7 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Invalid credentials.");
         }
 
-        if (user.LockedUntil.HasValue && user.LockedUntil > DateTimeOffset.UtcNow)
+        if (user.LockedUntil.HasValue && user.LockedUntil > DateTime.UtcNow)
         {
             throw new InvalidOperationException("Account is locked.");
         }
@@ -181,11 +197,11 @@ public class AuthService : IAuthService
         if (!BCrypt.Net.BCrypt.EnhancedVerify(request.Password, user.PasswordHash))
         {
             user.FailedLoginCount++;
-            user.UpdatedAt = DateTimeOffset.UtcNow;
+            user.UpdatedAt = DateTime.UtcNow;
             if (user.FailedLoginCount >= 5)
             {
                 user.Status = Domain.Enums.UserStatus.Locked;
-                user.LockedUntil = DateTimeOffset.UtcNow.AddMinutes(15);
+                user.LockedUntil = DateTime.UtcNow.AddMinutes(15);
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -193,8 +209,8 @@ public class AuthService : IAuthService
         }
 
         user.FailedLoginCount = 0;
-        user.LastLoginAt = DateTimeOffset.UtcNow;
-        user.UpdatedAt = DateTimeOffset.UtcNow;
+        user.LastLoginAt = DateTime.UtcNow;
+        user.UpdatedAt = DateTime.UtcNow;
 
         var role = user.UserRoles.Select(u => u.Role.Code).FirstOrDefault() ?? "BUYER";
         var scope = role.ToLowerInvariant();
@@ -210,12 +226,12 @@ public class AuthService : IAuthService
             TokenHash = accessHash,
             AccessJti = accessJti,
             RefreshTokenHash = refreshHash,
-            RefreshExpiresAt = DateTimeOffset.UtcNow.AddDays(_options.RefreshTokenExpiryDays),
-            LoginAt = DateTimeOffset.UtcNow,
-            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_options.AccessTokenExpiryMinutes),
+            RefreshExpiresAt = DateTime.UtcNow.AddDays(_options.RefreshTokenExpiryDays),
+            LoginAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(_options.AccessTokenExpiryMinutes),
             Status = "ACTIVE",
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         _dbContext.UserSessions.Add(session);
@@ -240,7 +256,7 @@ public class AuthService : IAuthService
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(s => s.RefreshTokenHash == refreshHash, cancellationToken);
 
-        if (session is null || session.Status != "ACTIVE" || session.ExpiresAt < DateTimeOffset.UtcNow)
+        if (session is null || session.Status != "ACTIVE" || session.ExpiresAt < DateTime.UtcNow)
         {
             throw new InvalidOperationException("Refresh token is invalid or expired.");
         }
@@ -256,14 +272,14 @@ public class AuthService : IAuthService
         session.TokenHash = newTokenHash;
         session.AccessJti = accessJti;
         session.RefreshTokenHash = newRefreshHash;
-        session.RefreshExpiresAt = DateTimeOffset.UtcNow.AddDays(_options.RefreshTokenExpiryDays);
-        session.ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_options.AccessTokenExpiryMinutes);
-        session.UpdatedAt = DateTimeOffset.UtcNow;
+        session.RefreshExpiresAt = DateTime.UtcNow.AddDays(_options.RefreshTokenExpiryDays);
+        session.ExpiresAt = DateTime.UtcNow.AddMinutes(_options.AccessTokenExpiryMinutes);
+        session.UpdatedAt = DateTime.UtcNow;
 
         _dbContext.UserSessions.Update(session);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        await BlacklistRefreshHashAsync(refreshHash, session.RefreshExpiresAt.HasValue ? session.RefreshExpiresAt.Value - DateTimeOffset.UtcNow : TimeSpan.Zero);
+        await BlacklistRefreshHashAsync(refreshHash, session.RefreshExpiresAt.HasValue ? session.RefreshExpiresAt.Value - DateTime.UtcNow : TimeSpan.Zero);
         await CacheSessionAsync(session, user.Id, role, scope);
 
         return new AuthResponse
@@ -290,11 +306,11 @@ public class AuthService : IAuthService
             Id = Guid.NewGuid(),
             UserId = user.Id,
             TokenHash = tokenHash,
-            RequestedAt = DateTimeOffset.UtcNow,
-            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_options.ResetPasswordTokenExpiryMinutes),
+            RequestedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(_options.ResetPasswordTokenExpiryMinutes),
             Status = "PENDING",
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         _dbContext.PasswordResetTokens.Add(resetToken);
@@ -305,10 +321,15 @@ public class AuthService : IAuthService
             AggregateId = user.Id,
             EventType = "email.reset-password",
             Payload = JsonSerializer.Serialize(new { user.Email, token, userId = user.Id }),
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow
         });
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _emailSender.SendEmailAsync(
+            user.Email,
+            "Yêu cầu đặt lại mật khẩu",
+            GetPasswordResetBody(user.FullName, token));
     }
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
@@ -318,24 +339,24 @@ public class AuthService : IAuthService
             .Include(t => t.User)
             .FirstOrDefaultAsync(t => t.TokenHash == tokenHash, cancellationToken);
 
-        if (resetToken is null || resetToken.Status != "PENDING" || resetToken.ExpiresAt < DateTimeOffset.UtcNow)
+        if (resetToken is null || resetToken.Status != "PENDING" || resetToken.ExpiresAt < DateTime.UtcNow)
         {
             throw new InvalidOperationException("Reset token is invalid or expired.");
         }
 
         var user = resetToken.User;
         user.PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(request.NewPassword);
-        user.UpdatedAt = DateTimeOffset.UtcNow;
+        user.UpdatedAt = DateTime.UtcNow;
         resetToken.Status = "USED";
-        resetToken.UsedAt = DateTimeOffset.UtcNow;
-        resetToken.UpdatedAt = DateTimeOffset.UtcNow;
+        resetToken.UsedAt = DateTime.UtcNow;
+        resetToken.UpdatedAt = DateTime.UtcNow;
 
         var sessions = await _dbContext.UserSessions.Where(s => s.UserId == user.Id && s.Status == "ACTIVE").ToListAsync(cancellationToken);
         foreach (var session in sessions)
         {
             session.Status = "REVOKED";
-            session.LogoutAt = DateTimeOffset.UtcNow;
-            session.UpdatedAt = DateTimeOffset.UtcNow;
+            session.LogoutAt = DateTime.UtcNow;
+            session.UpdatedAt = DateTime.UtcNow;
             if (!string.IsNullOrWhiteSpace(session.AccessJti))
             {
                 await BlacklistAccessJtiAsync(session.AccessJti, TimeSpan.FromMinutes(_options.AccessTokenExpiryMinutes));
@@ -359,7 +380,7 @@ public class AuthService : IAuthService
         }
 
         user.PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(newPassword);
-        user.UpdatedAt = DateTimeOffset.UtcNow;
+        user.UpdatedAt = DateTime.UtcNow;
 
         var sessions = await _dbContext.UserSessions
             .Where(s => s.UserId == user.Id && s.Status == "ACTIVE" && s.AccessJti != accessTokenJti)
@@ -368,8 +389,8 @@ public class AuthService : IAuthService
         foreach (var session in sessions)
         {
             session.Status = "REVOKED";
-            session.LogoutAt = DateTimeOffset.UtcNow;
-            session.UpdatedAt = DateTimeOffset.UtcNow;
+            session.LogoutAt = DateTime.UtcNow;
+            session.UpdatedAt = DateTime.UtcNow;
             if (!string.IsNullOrWhiteSpace(session.AccessJti))
             {
                 await BlacklistAccessJtiAsync(session.AccessJti, TimeSpan.FromMinutes(_options.AccessTokenExpiryMinutes));
@@ -386,11 +407,67 @@ public class AuthService : IAuthService
         return Convert.ToHexString(hash);
     }
 
+    private string GetEmailVerificationBody(string fullName, string token)
+    {
+        var name = string.IsNullOrWhiteSpace(fullName) ? "Người dùng" : fullName;
+        var verificationUrl = BuildVerificationUrl(token);
+        var body = new StringBuilder();
+        body.AppendLine($"<p>Xin chào {name},</p>");
+        body.AppendLine("<p>Cảm ơn bạn đã đăng ký. Vui lòng xác minh email bằng cách nhấn vào liên kết bên dưới:</p>");
+        body.AppendLine($"<p><a href=\"{verificationUrl}\">Xác minh email</a></p>");
+        body.AppendLine("<p>Nếu liên kết không hoạt động, hãy sao chép và dán mã sau vào trang xác minh của bạn:</p>");
+        body.AppendLine($"<p><strong>{token}</strong></p>");
+        return body.ToString();
+    }
+
+    private string GetPasswordResetBody(string fullName, string token)
+    {
+        var name = string.IsNullOrWhiteSpace(fullName) ? "Người dùng" : fullName;
+        var resetUrl = BuildResetPasswordUrl(token);
+        var body = new StringBuilder();
+        body.AppendLine($"<p>Xin chào {name},</p>");
+        body.AppendLine("<p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu. Vui lòng nhấn vào liên kết bên dưới để đặt lại mật khẩu của bạn:</p>");
+        body.AppendLine($"<p><a href=\"{resetUrl}\">Đặt lại mật khẩu</a></p>");
+        body.AppendLine("<p>Nếu liên kết không hoạt động, hãy sao chép và dán mã sau vào trang đặt lại mật khẩu:</p>");
+        body.AppendLine($"<p><strong>{token}</strong></p>");
+        return body.ToString();
+    }
+
+    private string GetPasswordChangedConfirmationBody(string fullName)
+    {
+        var name = string.IsNullOrWhiteSpace(fullName) ? "Người dùng" : fullName;
+        var body = new StringBuilder();
+        body.AppendLine($"<p>Xin chào {name},</p>");
+        body.AppendLine("<p>Mật khẩu của bạn đã được thay đổi thành công.</p>");
+        body.AppendLine("<p>Nếu bạn không thực hiện thay đổi này, vui lòng liên hệ với bộ phận hỗ trợ.</p>");
+        return body.ToString();
+    }
+
+    private string BuildVerificationUrl(string token)
+    {
+        if (string.IsNullOrWhiteSpace(_emailOptions.AppBaseUrl))
+        {
+            return token;
+        }
+
+        return $"{_emailOptions.AppBaseUrl.TrimEnd('/')}/verify-email?token={Uri.EscapeDataString(token)}";
+    }
+
+    private string BuildResetPasswordUrl(string token)
+    {
+        if (string.IsNullOrWhiteSpace(_emailOptions.AppBaseUrl))
+        {
+            return token;
+        }
+
+        return $"{_emailOptions.AppBaseUrl.TrimEnd('/')}/reset-password?token={Uri.EscapeDataString(token)}";
+    }
+
     private async Task CacheSessionAsync(UserSession session, Guid userId, string role, string scope)
     {
         var cacheKey = GetSessionCacheKey(session.Id);
         var payload = JsonSerializer.Serialize(new { session.UserId, role, scope, session.AccessJti, session.ExpiresAt });
-        await _cache.StringSetAsync(cacheKey, payload, session.ExpiresAt - DateTimeOffset.UtcNow);
+        await _cache.SetAsync(cacheKey, payload, session.ExpiresAt - DateTime.UtcNow);
     }
 
     private async Task BlacklistRefreshHashAsync(string refreshHash, TimeSpan expiry)
@@ -400,7 +477,7 @@ public class AuthService : IAuthService
             return;
         }
 
-        await _cache.StringSetAsync(GetRefreshBlacklistKey(refreshHash), "1", expiry);
+        await _cache.SetAsync(GetRefreshBlacklistKey(refreshHash), "1", expiry);
     }
 
     private async Task BlacklistAccessJtiAsync(string jti, TimeSpan expiry)
@@ -410,10 +487,11 @@ public class AuthService : IAuthService
             return;
         }
 
-        await _cache.StringSetAsync(GetAccessBlacklistKey(jti), "1", expiry);
+        await _cache.SetAsync(GetAccessBlacklistKey(jti), "1", expiry);
     }
 
     private static string GetSessionCacheKey(Guid sessionId) => $"user:session:{sessionId}";
     private static string GetRefreshBlacklistKey(string tokenHash) => $"auth:refresh:blacklist:{tokenHash}";
     private static string GetAccessBlacklistKey(string jti) => $"auth:access:blacklist:{jti}";
 }
+

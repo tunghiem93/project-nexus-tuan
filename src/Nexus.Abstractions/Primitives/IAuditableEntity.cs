@@ -2,6 +2,6 @@ namespace Nexus.Abstractions.Primitives;
 
 public interface IAuditableEntity
 {
-    DateTimeOffset CreatedAt { get; set; }
-    DateTimeOffset UpdatedAt { get; set; }
+    DateTime CreatedAt { get; set; }
+    DateTime UpdatedAt { get; set; }
 }

@@ -15,13 +15,13 @@ public class UserAccount : Entity, IAuditableEntity
     public DateOnly? DateOfBirth { get; set; }
     public string Status { get; set; } = Enums.UserStatus.Active;
     public bool IsEmailVerified { get; set; }
-    public DateTimeOffset? EmailVerifiedAt { get; set; }
+    public DateTime? EmailVerifiedAt { get; set; }
     public int FailedLoginCount { get; set; }
-    public DateTimeOffset? LockedUntil { get; set; }
-    public DateTimeOffset? LastLoginAt { get; set; }
+    public DateTime? LockedUntil { get; set; }
+    public DateTime? LastLoginAt { get; set; }
     public bool IsDeleted { get; set; }
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<UserRole> UserRoles { get; set; } = new HashSet<UserRole>();
     public ICollection<UserSession> Sessions { get; set; } = new HashSet<UserSession>();
@@ -36,36 +36,36 @@ public class UserAccount : Entity, IAuditableEntity
     public ICollection<AuditLog> AuditLogs { get; set; } = new HashSet<AuditLog>();
 
     // Domain helpers
-    public void VerifyEmail(DateTimeOffset at)
+    public void VerifyEmail(DateTime at)
     {
         IsEmailVerified = true;
         EmailVerifiedAt = at;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void IncrementFailedLogin()
     {
         FailedLoginCount++;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void ResetFailedLogin()
     {
         FailedLoginCount = 0;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
-    public void LockUntilDate(DateTimeOffset until)
+    public void LockUntilDate(DateTime until)
     {
         LockedUntil = until;
         Status = Enums.UserStatus.Locked;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
-    public void UpdateLastLogin(DateTimeOffset at)
+    public void UpdateLastLogin(DateTime at)
     {
         LastLoginAt = at;
         ResetFailedLogin();
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 }

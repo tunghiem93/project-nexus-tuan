@@ -1,4 +1,6 @@
+using System;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Nexus.Abstractions.Outbox;
 using Nexus.Persistence.Configurations;
 
@@ -16,6 +18,7 @@ public abstract class NexusDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration());
+
         base.OnModelCreating(modelBuilder);
     }
 }

@@ -10,7 +10,7 @@ public class Category : Entity, IAuditableEntity
     public string? Description { get; set; }
     public short Level { get; set; }
     public int SortOrder { get; set; }
-    public DateTimeOffset? DeletedAt { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

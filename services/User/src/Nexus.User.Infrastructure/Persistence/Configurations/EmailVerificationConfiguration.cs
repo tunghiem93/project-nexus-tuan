@@ -17,8 +17,6 @@ public class EmailVerificationConfiguration : IEntityTypeConfiguration<EmailVeri
         builder.Property(e => e.ExpiresAt).HasColumnName("expires_at");
         builder.Property(e => e.VerifiedAt).HasColumnName("verified_at");
         builder.Property(e => e.Status).HasColumnName("status").HasMaxLength(20).IsRequired();
-        builder.Property(e => e.CreatedAt).HasColumnName("created_at");
-        builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
         builder.HasOne(e => e.User)
             .WithMany(u => u.EmailVerifications)

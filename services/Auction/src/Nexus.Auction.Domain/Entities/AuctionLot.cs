@@ -8,8 +8,8 @@ public class AuctionLot : Entity, IAuditableEntity
     public Guid SellerId { get; set; }
     public string Status { get; set; } = "SCHEDULED";
     public decimal StartingPrice { get; set; }
-    public DateTimeOffset StartsAt { get; set; }
-    public DateTimeOffset EndsAt { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTime StartsAt { get; set; }
+    public DateTime EndsAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

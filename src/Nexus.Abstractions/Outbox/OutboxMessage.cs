@@ -8,6 +8,6 @@ public sealed class OutboxMessage
     public Guid AggregateId { get; set; }
     public string EventType { get; set; } = string.Empty;
     public string Payload { get; set; } = string.Empty;
-    public DateTimeOffset? PublishedAt { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTime? PublishedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

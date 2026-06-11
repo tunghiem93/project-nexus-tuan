@@ -11,8 +11,8 @@ public class ReputationAudit : Entity, IAuditableEntity
     public decimal? OldScore { get; set; }
     public decimal? NewScore { get; set; }
     public string? DetailJson { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     public UserAccount User { get; set; } = null!;
 }

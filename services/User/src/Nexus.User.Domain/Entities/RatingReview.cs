@@ -12,7 +12,7 @@ public class RatingReview : Entity
     public int? Score { get; set; }
     public string? Comment { get; set; }
     public bool IsDisputed { get; set; }
-    public DateTimeOffset SubmittedAt { get; set; }
+    public DateTime SubmittedAt { get; set; }
 
     public UserAccount RaterUser { get; set; } = null!;
     public UserAccount RatedUser { get; set; } = null!;

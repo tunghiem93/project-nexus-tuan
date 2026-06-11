@@ -11,8 +11,8 @@ public class ReputationProfile : Entity, IAuditableEntity
     public int FailedActivityCount { get; set; }
     public int AuctionWinCount { get; set; }
     public int AuctionFailCount { get; set; }
-    public DateTimeOffset UpdatedAt { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public UserAccount User { get; set; } = null!;
 }
