@@ -263,7 +263,7 @@ public class AuthService : IAuthService
         _dbContext.UserSessions.Update(session);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        await BlacklistRefreshHashAsync(refreshHash, session.RefreshExpiresAt - DateTimeOffset.UtcNow);
+        await BlacklistRefreshHashAsync(refreshHash, session.RefreshExpiresAt.HasValue ? session.RefreshExpiresAt.Value - DateTimeOffset.UtcNow : TimeSpan.Zero);
         await CacheSessionAsync(session, user.Id, role, scope);
 
         return new AuthResponse

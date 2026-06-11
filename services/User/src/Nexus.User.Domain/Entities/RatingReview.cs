@@ -1,3 +1,5 @@
+using Nexus.Abstractions.Primitives;
+
 namespace Nexus.User.Domain.Entities;
 
 public class RatingReview : Entity

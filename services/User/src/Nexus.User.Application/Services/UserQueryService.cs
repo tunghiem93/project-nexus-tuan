@@ -11,7 +11,7 @@ public class UserQueryService(IRepository<UserAccount> userRepository) : IUserQu
     {
         var user = await userRepository.Query()
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == id && u.DeletedAt == null, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted, cancellationToken);
 
         return user is null
             ? null
