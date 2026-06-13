@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <RootNamespace>Nexus.Notification.Domain</RootNamespace>
-    <AssemblyName>Nexus.Notification.Domain</AssemblyName>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\src\Nexus.Abstractions\Nexus.Abstractions.csproj" />
-  </ItemGroup>
-</Project>

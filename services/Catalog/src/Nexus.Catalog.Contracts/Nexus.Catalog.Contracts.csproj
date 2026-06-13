@@ -1,6 +1,0 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <RootNamespace>Nexus.Catalog.Contracts</RootNamespace>
-    <AssemblyName>Nexus.Catalog.Contracts</AssemblyName>
-  </PropertyGroup>
-</Project>

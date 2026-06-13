@@ -1,6 +1,0 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <RootNamespace>Nexus.Auction.Contracts</RootNamespace>
-    <AssemblyName>Nexus.Auction.Contracts</AssemblyName>
-  </PropertyGroup>
-</Project>

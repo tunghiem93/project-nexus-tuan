@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <RootNamespace>Nexus.Auction.Domain</RootNamespace>
-    <AssemblyName>Nexus.Auction.Domain</AssemblyName>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\src\Nexus.Abstractions\Nexus.Abstractions.csproj" />
-  </ItemGroup>
-</Project>
