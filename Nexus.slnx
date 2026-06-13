@@ -4,12 +4,46 @@
     <Project Path="src/Nexus.Persistence/Nexus.Persistence.csproj" />
     <Project Path="src/Nexus.AspNetCore/Nexus.AspNetCore.csproj" />
   </Folder>
-  <Folder Name="/services/" />
   <Folder Name="/services/User/">
     <Project Path="services/User/src/Nexus.User.Domain/Nexus.User.Domain.csproj" />
     <Project Path="services/User/src/Nexus.User.Contracts/Nexus.User.Contracts.csproj" />
     <Project Path="services/User/src/Nexus.User.Application/Nexus.User.Application.csproj" />
     <Project Path="services/User/src/Nexus.User.Infrastructure/Nexus.User.Infrastructure.csproj" />
     <Project Path="services/User/src/Nexus.User.Api/Nexus.User.Api.csproj" />
+  </Folder>
+  <Folder Name="/services/Catalog/">
+    <Project Path="services/Catalog/src/Nexus.Catalog.Domain/Nexus.Catalog.Domain.csproj" />
+    <Project Path="services/Catalog/src/Nexus.Catalog.Contracts/Nexus.Catalog.Contracts.csproj" />
+    <Project Path="services/Catalog/src/Nexus.Catalog.Application/Nexus.Catalog.Application.csproj" />
+    <Project Path="services/Catalog/src/Nexus.Catalog.Infrastructure/Nexus.Catalog.Infrastructure.csproj" />
+    <Project Path="services/Catalog/src/Nexus.Catalog.Api/Nexus.Catalog.Api.csproj" />
+  </Folder>
+  <Folder Name="/services/Commerce/">
+    <Project Path="services/Commerce/src/Nexus.Commerce.Domain/Nexus.Commerce.Domain.csproj" />
+    <Project Path="services/Commerce/src/Nexus.Commerce.Contracts/Nexus.Commerce.Contracts.csproj" />
+    <Project Path="services/Commerce/src/Nexus.Commerce.Application/Nexus.Commerce.Application.csproj" />
+    <Project Path="services/Commerce/src/Nexus.Commerce.Infrastructure/Nexus.Commerce.Infrastructure.csproj" />
+    <Project Path="services/Commerce/src/Nexus.Commerce.Api/Nexus.Commerce.Api.csproj" />
+  </Folder>
+  <Folder Name="/services/Auction/">
+    <Project Path="services/Auction/src/Nexus.Auction.Domain/Nexus.Auction.Domain.csproj" />
+    <Project Path="services/Auction/src/Nexus.Auction.Contracts/Nexus.Auction.Contracts.csproj" />
+    <Project Path="services/Auction/src/Nexus.Auction.Application/Nexus.Auction.Application.csproj" />
+    <Project Path="services/Auction/src/Nexus.Auction.Infrastructure/Nexus.Auction.Infrastructure.csproj" />
+    <Project Path="services/Auction/src/Nexus.Auction.Api/Nexus.Auction.Api.csproj" />
+  </Folder>
+  <Folder Name="/services/Fulfillment/">
+    <Project Path="services/Fulfillment/src/Nexus.Fulfillment.Domain/Nexus.Fulfillment.Domain.csproj" />
+    <Project Path="services/Fulfillment/src/Nexus.Fulfillment.Contracts/Nexus.Fulfillment.Contracts.csproj" />
+    <Project Path="services/Fulfillment/src/Nexus.Fulfillment.Application/Nexus.Fulfillment.Application.csproj" />
+    <Project Path="services/Fulfillment/src/Nexus.Fulfillment.Infrastructure/Nexus.Fulfillment.Infrastructure.csproj" />
+    <Project Path="services/Fulfillment/src/Nexus.Fulfillment.Api/Nexus.Fulfillment.Api.csproj" />
+  </Folder>
+  <Folder Name="/services/Notification/">
+    <Project Path="services/Notification/src/Nexus.Notification.Domain/Nexus.Notification.Domain.csproj" />
+    <Project Path="services/Notification/src/Nexus.Notification.Contracts/Nexus.Notification.Contracts.csproj" />
+    <Project Path="services/Notification/src/Nexus.Notification.Application/Nexus.Notification.Application.csproj" />
+    <Project Path="services/Notification/src/Nexus.Notification.Infrastructure/Nexus.Notification.Infrastructure.csproj" />
+    <Project Path="services/Notification/src/Nexus.Notification.Api/Nexus.Notification.Api.csproj" />
   </Folder>
 </Solution>

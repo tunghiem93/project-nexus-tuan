@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Nexus.Commerce.Api</RootNamespace>
+    <AssemblyName>Nexus.Commerce.Api</AssemblyName>
+    <LaunchBrowser>true</LaunchBrowser>
+    <LaunchUrl>swagger</LaunchUrl>
+    <ApplicationUrl>http://localhost:8083</ApplicationUrl>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nexus.Commerce.Application\Nexus.Commerce.Application.csproj" />
+    <ProjectReference Include="..\Nexus.Commerce.Infrastructure\Nexus.Commerce.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Nexus.AspNetCore\Nexus.AspNetCore.csproj" />
+  </ItemGroup>
+</Project>

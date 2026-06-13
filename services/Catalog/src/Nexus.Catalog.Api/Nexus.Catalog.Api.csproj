@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Nexus.Catalog.Api</RootNamespace>
+    <AssemblyName>Nexus.Catalog.Api</AssemblyName>
+    <LaunchBrowser>true</LaunchBrowser>
+    <LaunchUrl>swagger</LaunchUrl>
+    <ApplicationUrl>http://localhost:8082</ApplicationUrl>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nexus.Catalog.Application\Nexus.Catalog.Application.csproj" />
+    <ProjectReference Include="..\Nexus.Catalog.Infrastructure\Nexus.Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Nexus.AspNetCore\Nexus.AspNetCore.csproj" />
+  </ItemGroup>
+</Project>

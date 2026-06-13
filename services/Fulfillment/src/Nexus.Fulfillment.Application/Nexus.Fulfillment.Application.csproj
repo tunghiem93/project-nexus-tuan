@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Nexus.Fulfillment.Application</RootNamespace>
+    <AssemblyName>Nexus.Fulfillment.Application</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nexus.Fulfillment.Domain\Nexus.Fulfillment.Domain.csproj" />
+    <ProjectReference Include="..\Nexus.Fulfillment.Contracts\Nexus.Fulfillment.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Nexus.Abstractions\Nexus.Abstractions.csproj" />
+  </ItemGroup>
+</Project>
