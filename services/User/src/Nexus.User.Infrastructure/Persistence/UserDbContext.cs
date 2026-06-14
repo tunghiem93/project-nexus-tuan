@@ -21,6 +21,8 @@ public class UserDbContext(DbContextOptions<UserDbContext> options) : NexusDbCon
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
 
+    public DbSet<Nexus.User.Domain.Entities.User> Users1 { get; set; } = default!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

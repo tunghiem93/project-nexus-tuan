@@ -11,6 +11,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Nexus.User.Application\Nexus.User.Application.csproj" />
     <ProjectReference Include="..\Nexus.User.Domain\Nexus.User.Domain.csproj" />
     <ProjectReference Include="..\..\..\..\src\Nexus.Persistence\Nexus.Persistence.csproj" />
   </ItemGroup>
