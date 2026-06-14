@@ -22,10 +22,10 @@ public class AuthController : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("verify-email")]
-    public async Task<IActionResult> VerifyEmail([FromQuery] string token)
+    [HttpPost("verify-email")]
+    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
     {
-        await _authService.VerifyEmailAsync(token);
+        await _authService.VerifyEmailAsync(request.Code);
         return NoContent();
     }
 

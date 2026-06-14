@@ -122,9 +122,9 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task VerifyEmailAsync(string token, CancellationToken cancellationToken = default)
+    public async Task VerifyEmailAsync(string code, CancellationToken cancellationToken = default)
     {
-        var verificationHash = HashToken(token);
+        var verificationHash = HashToken(code);
         var verification = await _dbContext.EmailVerifications
             .Include(v => v.User)
             .FirstOrDefaultAsync(v => v.VerificationTokenHash == verificationHash, cancellationToken)
@@ -484,16 +484,6 @@ public class AuthService : IAuthService
         body.AppendLine("<p>Mật khẩu của bạn đã được thay đổi thành công.</p>");
         body.AppendLine("<p>Nếu bạn không thực hiện thay đổi này, vui lòng liên hệ với bộ phận hỗ trợ.</p>");
         return body.ToString();
-    }
-
-    private string BuildVerificationUrl(string token)
-    {
-        if (string.IsNullOrWhiteSpace(_emailOptions.AppBaseUrl))
-        {
-            return token;
-        }
-
-        return $"{_emailOptions.AppBaseUrl.TrimEnd('/')}/verify-email?token={Uri.EscapeDataString(token)}";
     }
 
     private string BuildResetPasswordUrl(string token)
