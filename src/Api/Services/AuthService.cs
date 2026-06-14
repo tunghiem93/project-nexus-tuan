@@ -95,28 +95,16 @@ public class AuthService : IAuthService
         _dbContext.Users.Add(user);
         _dbContext.UserRoles.Add(userRole);
 
-        var verificationToken = _jwtTokenService.CreateEmailVerificationToken(user);
+        var verificationCode = GenerateVerificationCode();
         _dbContext.EmailVerifications.Add(new EmailVerification
         {
             Id = Guid.NewGuid(),
             User = user,
-            VerificationTokenHash = HashToken(verificationToken),
+            VerificationTokenHash = HashToken(verificationCode),
             RequestedAt = DateTime.UtcNow,
             ExpiresAt = DateTime.UtcNow.AddMinutes(_options.EmailVerifyTokenExpiryMinutes),
             Status = "PENDING",
         });
-
-
-        //chưa thống nhất cách quản lý push thông báo message ở đây? 1 là call api bên service Notification hay là call dbcontext chung để add vào.
-        //_dbContext.OutboxMessages.Add(new Nexus.Abstractions.Outbox.OutboxMessage
-        //{
-        //    Id = Guid.NewGuid(),
-        //    AggregateType = "User",
-        //    AggregateId = user.Id,
-        //    EventType = "email.verify",
-        //    Payload = JsonSerializer.Serialize(new { user.Email, token = verificationToken, userId = user.Id }),
-        //    CreatedAt = DateTime.UtcNow
-        //});
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -125,7 +113,7 @@ public class AuthService : IAuthService
             await _emailSender.SendEmailAsync(
                 user.Email,
                 "Xác minh email đăng ký",
-                GetEmailVerificationBody(user.FullName, verificationToken));
+                GetEmailVerificationBody(user.FullName, verificationCode));
 
         }
         catch (Exception)
@@ -136,31 +124,18 @@ public class AuthService : IAuthService
 
     public async Task VerifyEmailAsync(string token, CancellationToken cancellationToken = default)
     {
-        var principal = _jwtTokenService.ValidateAccessToken(token);
-        var tokenType = principal.FindFirst("token_type")?.Value;
-        if (!string.Equals(tokenType, "email_verify", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Invalid email verification token.");
-        }
-
-        var subject = principal.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
-        if (!Guid.TryParse(subject, out var userId))
-        {
-            throw new InvalidOperationException("Invalid token payload.");
-        }
-
         var verificationHash = HashToken(token);
-        var verification = await _dbContext.EmailVerifications.FirstOrDefaultAsync(v => v.VerificationTokenHash == verificationHash, cancellationToken)
+        var verification = await _dbContext.EmailVerifications
+            .Include(v => v.User)
+            .FirstOrDefaultAsync(v => v.VerificationTokenHash == verificationHash, cancellationToken)
             ?? throw new InvalidOperationException("Email verification request not found.");
 
         if (verification.Status != "PENDING" || verification.ExpiresAt < DateTime.UtcNow)
         {
-            throw new InvalidOperationException("Verification token is invalid or expired.");
+            throw new InvalidOperationException("Verification code is invalid or expired.");
         }
 
-        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
-            ?? throw new InvalidOperationException("User not found.");
-
+        var user = verification.User;
         verification.Status = "VERIFIED";
         verification.VerifiedAt = DateTime.UtcNow;
 
@@ -447,6 +422,12 @@ public class AuthService : IAuthService
         return Convert.ToHexString(hash);
     }
 
+    private static string GenerateVerificationCode()
+    {
+        var randomNumber = RandomNumberGenerator.GetInt32(0, 1_000_000);
+        return randomNumber.ToString("D6");
+    }
+
     private string? GetClientIp()
     {
         try
@@ -474,13 +455,11 @@ public class AuthService : IAuthService
     private string GetEmailVerificationBody(string fullName, string token)
     {
         var name = string.IsNullOrWhiteSpace(fullName) ? "Người dùng" : fullName;
-        var verificationUrl = BuildVerificationUrl(token);
         var body = new StringBuilder();
         body.AppendLine($"<p>Xin chào {name},</p>");
-        body.AppendLine("<p>Cảm ơn bạn đã đăng ký. Vui lòng xác minh email bằng cách nhấn vào liên kết bên dưới:</p>");
-        body.AppendLine($"<p><a href=\"{verificationUrl}\">Xác minh email</a></p>");
-        body.AppendLine("<p>Nếu liên kết không hoạt động, hãy sao chép và dán mã sau vào trang xác minh của bạn:</p>");
+        body.AppendLine("<p>Cảm ơn bạn đã đăng ký. Vui lòng xác minh email với mã sau:</p>");
         body.AppendLine($"<p><strong>{token}</strong></p>");
+        body.AppendLine("<p>Mã này có hiệu lực trong vài phút. Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.</p>");
         return body.ToString();
     }
 

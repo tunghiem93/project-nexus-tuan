@@ -66,26 +66,6 @@ public class JwtTokenService : IJwtTokenService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public string CreateEmailVerificationToken(UserAccount user)
-    {
-        var claims = new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim("token_type", "email_verify")
-        };
-
-        var token = new JwtSecurityToken(
-            issuer: _options.Issuer,
-            audience: _options.Audience,
-            claims: claims,
-            notBefore: DateTime.UtcNow,
-            expires: DateTime.UtcNow.AddMinutes(_options.EmailVerifyTokenExpiryMinutes),
-            signingCredentials: _signingCredentials);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
     public ClaimsPrincipal ValidateAccessToken(string token)
     {
         var handler = new JwtSecurityTokenHandler();
