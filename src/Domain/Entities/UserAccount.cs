@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using Nexus.Abstractions.Primitives;
 
 namespace Nexus.User.Domain.Entities;
@@ -27,7 +25,6 @@ public class UserAccount : Entity, IAuditableEntity
     public ICollection<UserRole> UserRoles { get; set; } = new HashSet<UserRole>();
     public ICollection<UserSession> Sessions { get; set; } = new HashSet<UserSession>();
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new HashSet<PasswordResetToken>();
-    public ICollection<UserPreference> Preferences { get; set; } = new HashSet<UserPreference>();
     public ICollection<EmailVerification> EmailVerifications { get; set; } = new HashSet<EmailVerification>();
     public ICollection<RatingReview> RatingsGiven { get; set; } = new HashSet<RatingReview>();
     public ICollection<RatingReview> RatingsReceived { get; set; } = new HashSet<RatingReview>();

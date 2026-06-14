@@ -18,13 +18,6 @@ public sealed class UserDbContext : NexusDbContext
     public DbSet<EmailVerification> EmailVerifications { get; set; } = null!;
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = null!;
     public DbSet<UserSession> UserSessions { get; set; } = null!;
-    public DbSet<UserPreference> UserPreferences { get; set; } = null!;
-    public DbSet<Privilege> Privileges { get; set; } = null!;
-    public DbSet<RolePrivilege> RolePrivileges { get; set; } = null!;
-    public DbSet<RatingReview> RatingReviews { get; set; } = null!;
-    public DbSet<ReputationProfile> ReputationProfiles { get; set; } = null!;
-    public DbSet<PenaltyViolation> PenaltyViolations { get; set; } = null!;
-    public DbSet<ReputationAudit> ReputationAudits { get; set; } = null!;
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
     public DbSet<OutboxMessage> OutboxMessages { get; set; } = null!;
 }

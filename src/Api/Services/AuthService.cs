@@ -1,10 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Linq;
-using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Nexus.User.Application;
 using Nexus.User.Application.Services;
@@ -141,20 +138,7 @@ public class AuthService : IAuthService
 
         user.IsEmailVerified = true;
         user.EmailVerifiedAt = DateTime.UtcNow;
-        user.UpdatedAt = DateTime.UtcNow;
-
-        if (!user.Preferences.Any())
-        {
-            user.Preferences.Add(new UserPreference
-            {
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                Key = "default_locale",
-                Value = "en-US",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            });
-        }
+        user.UpdatedAt = DateTime.UtcNow;        
 
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
