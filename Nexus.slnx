@@ -1,15 +1,9 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Nexus.Abstractions/Nexus.Abstractions.csproj" />
-    <Project Path="src/Nexus.Persistence/Nexus.Persistence.csproj" />
-    <Project Path="src/Nexus.AspNetCore/Nexus.AspNetCore.csproj" />
-  </Folder>
-  <Folder Name="/services/" />
-  <Folder Name="/services/User/">
-    <Project Path="services/User/src/Nexus.User.Domain/Nexus.User.Domain.csproj" />
-    <Project Path="services/User/src/Nexus.User.Contracts/Nexus.User.Contracts.csproj" />
-    <Project Path="services/User/src/Nexus.User.Application/Nexus.User.Application.csproj" />
-    <Project Path="services/User/src/Nexus.User.Infrastructure/Nexus.User.Infrastructure.csproj" />
-    <Project Path="services/User/src/Nexus.User.Api/Nexus.User.Api.csproj" />
+    <Project Path="src/Api/Nexus.User.Api.csproj" />
+    <Project Path="src/Application/Nexus.User.Application.csproj" />
+    <Project Path="src/Domain/Nexus.User.Domain.csproj" />
+    <Project Path="src/Infrastructure/Nexus.User.Infrastructure.csproj" />
+    <Project Path="src/Persistence/Nexus.User.Persistence.csproj" />
   </Folder>
 </Solution>

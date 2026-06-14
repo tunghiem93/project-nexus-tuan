@@ -1,6 +1,6 @@
 # Project Nexus — Backend (.NET + SQL Server)
 
-Microservices backend cho sàn E-Commerce & Auction (SRS v0.7).
+Backend cho dịch vụ User trong repo này.
 
 **Stack:** ASP.NET Core 9, EF Core 9, SQL Server, Redis, RabbitMQ
 
@@ -11,12 +11,15 @@ Microservices backend cho sàn E-Commerce & Auction (SRS v0.7).
 ├── Directory.Build.props / Directory.Packages.props
 ├── Nexus.slnx
 ├── src/
-│   ├── Nexus.Abstractions/
-│   ├── Nexus.Persistence/
-│   └── Nexus.AspNetCore/
-└── services/{User|Catalog|Commerce|Auction|Fulfillment|Notification}/
-    ├── db/schema.sql
-    └── src/Nexus.{Name}.{Api|Application|Domain|Infrastructure|Contracts}/
+│   ├── Api/
+│   │   ├── Hosting/
+│   │   ├── Controllers/
+│   │   ├── Grpc/
+│   │   └── Services/
+│   ├── Application/
+│   ├── Domain/
+│   ├── Infrastructure/
+│   └── Shared/
 ```
 
 Chi tiết layer và dependency rules: [ARCHITECTURE.md](ARCHITECTURE.md)
@@ -39,20 +42,14 @@ docker compose up -d
 
 ```powershell
 dotnet build Nexus.slnx
-cd services\User\src\Nexus.User.Api
-dotnet run
+dotnet run --project src/Api/Nexus.User.Api.csproj
 curl http://localhost:8081/api/v1/health
 # Swagger UI (Development): http://localhost:8081/swagger
 ```
 
 | Service | API | Port |
 |---------|-----|------|
-| User | `services/User/src/Nexus.User.Api` | 8081 |
-| Catalog | `services/Catalog/src/Nexus.Catalog.Api` | 8082 |
-| Commerce | `services/Commerce/src/Nexus.Commerce.Api` | 8083 |
-| Auction | `services/Auction/src/Nexus.Auction.Api` | 8084 |
-| Fulfillment | `services/Fulfillment/src/Nexus.Fulfillment.Api` | 8085 |
-| Notification | `services/Notification/src/Nexus.Notification.Api` | 8086 |
+| User | `src/Api/Nexus.User.Api.csproj` | 8081 |
 
 ## Tài liệu
 

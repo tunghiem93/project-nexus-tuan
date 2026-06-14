@@ -2,31 +2,12 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Auction API",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "build-auction-api",
-      "program": "${workspaceFolder}/services/Auction/src/Nexus.Auction.Api/bin/Debug/net9.0/Nexus.Auction.Api.dll",
-      "cwd": "${workspaceFolder}/services/Auction/src/Nexus.Auction.Api",
-      "launchSettingsProfile": "http",
-      "serverReadyAction": {
-        "action": "openExternally",
-        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
-        "uriFormat": "%s/swagger"
-      },
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://localhost:8084",
-        "NEXUS_OPEN_SWAGGER": "true"
-      }
-    },
-    {
       "name": "User API",
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build-user-api",
-      "program": "${workspaceFolder}/services/User/src/Nexus.User.Api/bin/Debug/net9.0/Nexus.User.Api.dll",
-      "cwd": "${workspaceFolder}/services/User/src/Nexus.User.Api",
+      "program": "${workspaceFolder}/src/Api/Nexus.User.Api/bin/Debug/net9.0/Nexus.User.Api.dll",
+      "cwd": "${workspaceFolder}/src/Api",
       "launchSettingsProfile": "http",
       "serverReadyAction": {
         "action": "openExternally",
@@ -39,81 +20,5 @@
         "NEXUS_OPEN_SWAGGER": "true"
       }
     },
-    {
-      "name": "Catalog API",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "build-catalog-api",
-      "program": "${workspaceFolder}/services/Catalog/src/Nexus.Catalog.Api/bin/Debug/net9.0/Nexus.Catalog.Api.dll",
-      "cwd": "${workspaceFolder}/services/Catalog/src/Nexus.Catalog.Api",
-      "launchSettingsProfile": "http",
-      "serverReadyAction": {
-        "action": "openExternally",
-        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
-        "uriFormat": "%s/swagger"
-      },
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://localhost:8082",
-        "NEXUS_OPEN_SWAGGER": "true"
-      }
-    },
-    {
-      "name": "Commerce API",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "build-commerce-api",
-      "program": "${workspaceFolder}/services/Commerce/src/Nexus.Commerce.Api/bin/Debug/net9.0/Nexus.Commerce.Api.dll",
-      "cwd": "${workspaceFolder}/services/Commerce/src/Nexus.Commerce.Api",
-      "launchSettingsProfile": "http",
-      "serverReadyAction": {
-        "action": "openExternally",
-        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
-        "uriFormat": "%s/swagger"
-      },
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://localhost:8083",
-        "NEXUS_OPEN_SWAGGER": "true"
-      }
-    },
-    {
-      "name": "Fulfillment API",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "build-fulfillment-api",
-      "program": "${workspaceFolder}/services/Fulfillment/src/Nexus.Fulfillment.Api/bin/Debug/net9.0/Nexus.Fulfillment.Api.dll",
-      "cwd": "${workspaceFolder}/services/Fulfillment/src/Nexus.Fulfillment.Api",
-      "launchSettingsProfile": "http",
-      "serverReadyAction": {
-        "action": "openExternally",
-        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
-        "uriFormat": "%s/swagger"
-      },
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://localhost:8085",
-        "NEXUS_OPEN_SWAGGER": "true"
-      }
-    },
-    {
-      "name": "Notification API",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "build-notification-api",
-      "program": "${workspaceFolder}/services/Notification/src/Nexus.Notification.Api/bin/Debug/net9.0/Nexus.Notification.Api.dll",
-      "cwd": "${workspaceFolder}/services/Notification/src/Nexus.Notification.Api",
-      "launchSettingsProfile": "http",
-      "serverReadyAction": {
-        "action": "openExternally",
-        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
-        "uriFormat": "%s/swagger"
-      },
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://localhost:8086",
-        "NEXUS_OPEN_SWAGGER": "true"
-      }
-    }
   ]
 }

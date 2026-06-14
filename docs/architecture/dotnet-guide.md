@@ -5,18 +5,19 @@
 | Project | Role |
 |---------|------|
 | `Nexus.Abstractions` | `Entity`, `IRepository<T>`, `OutboxMessage` |
-| `Nexus.Persistence` | `NexusDbContext`, `EfRepository<T>`, `AddSqlServerPersistence<TContext>` |
-| `Nexus.AspNetCore` | `AddNexusApi`, `AddNexusDbHealthCheck`, `UseNexusApi`, `/api/v1/health`, `/swagger` (dev) |
+| `Nexus.User.Persistence` | `NexusDbContext`, `EfRepository<T>`, `AddSqlServerPersistence<TContext>` |
+| `src/Api/Hosting` | `AddNexusApi`, `AddNexusDbHealthCheck`, `UseNexusApi`, `/api/v1/health`, `/swagger` (dev) |
 
 ## Service layout
 
 ```
-services/User/src/
-├── Nexus.User.Api/
-├── Nexus.User.Application/     → ApplicationServiceCollectionExtensions
-├── Nexus.User.Domain/          → references Abstractions only
-├── Nexus.User.Infrastructure/  → *DbContext, EF configurations
-└── Nexus.User.Contracts/       → DTOs
+src/
+├── Api/                    → REST API and gRPC surface
+├── Application/            → business logic services
+├── Domain/                 → entities and domain rules
+├── Infrastructure/         → EF Core configuration and persistence
+├── Contracts/              → DTOs and API contracts
+└── Shared/                 → shared abstractions and persistence helpers
 ```
 
 ## EF Core + SQL Server
@@ -27,12 +28,12 @@ services.AddSqlServerPersistence<UserDbContext>(connectionString);
 ```
 
 ```powershell
-dotnet ef migrations add InitialCreate `
-  --project services/User/src/Nexus.User.Infrastructure `
-  --startup-project services/User/src/Nexus.User.Api
-dotnet ef database update `
-  --project services/User/src/Nexus.User.Infrastructure `
-  --startup-project services/User/src/Nexus.User.Api
+dotnet ef migrations add InitialCreate \
+  --project src/Infrastructure/Nexus.User.Infrastructure.csproj \
+  --startup-project src/Api/Nexus.User.Api.csproj
+dotnet ef database update \
+  --project src/Infrastructure/Nexus.User.Infrastructure.csproj \
+  --startup-project src/Api/Nexus.User.Api.csproj
 ```
 
 `db/schema.sql` remains the review source of truth for DDL.

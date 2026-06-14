@@ -9,19 +9,13 @@ Microservices E-Commerce & Auction platform. Each bounded context owns one SQL S
 ├── Directory.Packages.props   # Central package versions
 ├── global.json
 ├── Nexus.slnx
-├── src/                       # Shared libraries (not business logic)
-│   ├── Nexus.Abstractions/    # Entities, IRepository
-│   ├── Nexus.Persistence/     # EF Core, NexusDbContext, EfRepository
-│   └── Nexus.AspNetCore/      # API host conventions, health endpoints
-├── services/{Name}/           # One folder per bounded context
-│   ├── db/schema.sql
-│   ├── README.md
-│   └── src/
-│       ├── Nexus.{Name}.Api/
-│       ├── Nexus.{Name}.Application/
-│       ├── Nexus.{Name}.Domain/
-│       ├── Nexus.{Name}.Infrastructure/
-│       └── Nexus.{Name}.Contracts/
+├── src/                       # Shared libraries and service implementation
+│   ├── Shared/                # Common helpers and persistence base
+│   ├── Domain/                # Entities and domain rules
+│   ├── Application/           # Business use cases and service contracts
+│   ├── Infrastructure/        # EF Core configuration and persistence
+│   └── Api/                   # HTTP/gRPC surface and host glue
+│       └── Hosting/           # API host conventions, health endpoints
 ├── api-specs/
 ├── docs/
 └── infra/
@@ -47,15 +41,15 @@ Domain **must not** reference EF Core or ASP.NET.
 
 ## API host
 
-Each `Program.cs` follows the same pattern:
+The `Program.cs` follows this pattern for the User service:
 
 ```csharp
-builder.AddNexusApi("{service-id}");
-builder.Services.Add{Name}Infrastructure(builder.Configuration);
-builder.Services.Add{Name}Application();
-builder.AddNexusDbHealthCheck<{Name}DbContext>();
+builder.AddNexusApi("user");
+builder.Services.AddUserInfrastructure(builder.Configuration);
+builder.Services.AddUserApplication();
+builder.AddNexusDbHealthCheck<UserDbContext>();
 var app = builder.Build();
-app.UseNexusApi("{service-id}");
+app.UseNexusApi("user");
 ```
 
 - Liveness: `GET /health` (ASP.NET health checks + DB)

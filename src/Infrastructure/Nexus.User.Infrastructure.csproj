@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Nexus.User.Infrastructure</RootNamespace>
+    <AssemblyName>Nexus.User.Infrastructure</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Services\**\*.cs" />
+    <Compile Include="Persistence\**\*.cs" />
+    <Compile Include="InfrastructureServiceCollectionExtensions.cs" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Application\Nexus.User.Application.csproj" />
+    <ProjectReference Include="..\Domain\Nexus.User.Domain.csproj" />
+    <ProjectReference Include="..\Persistence\Nexus.User.Persistence.csproj" />
+  </ItemGroup>
+</Project>
+
