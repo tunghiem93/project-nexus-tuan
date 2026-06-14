@@ -1,8 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Linq;
 using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Nexus.User.Application;
 using Nexus.User.Application.Services;
@@ -18,6 +20,7 @@ public class AuthService : IAuthService
     private readonly UserDbContext _dbContext;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IUserCache _cache;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly AuthOptions _options;
     private readonly IEmailSender _emailSender;
     private readonly EmailOptions _emailOptions;
@@ -26,6 +29,7 @@ public class AuthService : IAuthService
         UserDbContext dbContext,
         IJwtTokenService jwtTokenService,
         IUserCache cache,
+        IHttpContextAccessor httpContextAccessor,
         IOptions<AuthOptions> authOptions,
         IEmailSender emailSender,
         IOptions<EmailOptions> emailOptions)
@@ -33,6 +37,7 @@ public class AuthService : IAuthService
         _dbContext = dbContext;
         _jwtTokenService = jwtTokenService;
         _cache = cache;
+        _httpContextAccessor = httpContextAccessor;
         _options = authOptions.Value;
         _emailSender = emailSender;
         _emailOptions = emailOptions.Value;
@@ -101,6 +106,8 @@ public class AuthService : IAuthService
             Status = "PENDING",
         });
 
+
+        //chưa thống nhất cách quản lý push thông báo message ở đây? 1 là call api bên service Notification hay là call dbcontext chung để add vào.
         //_dbContext.OutboxMessages.Add(new Nexus.Abstractions.Outbox.OutboxMessage
         //{
         //    Id = Guid.NewGuid(),
@@ -179,6 +186,20 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
+        const int MaxAttempts = 5;
+        var AttemptWindow = TimeSpan.FromMinutes(15);
+        var BlockDuration = TimeSpan.FromMinutes(15);
+
+        var ip = GetClientIp();
+        if (!string.IsNullOrWhiteSpace(ip))
+        {
+            var blocked = await _cache.GetAsync(GetBlockKey(ip));
+            if (!string.IsNullOrWhiteSpace(blocked))
+            {
+                throw new InvalidOperationException("Too many attempts from your IP. Try again later.");
+            }
+        }
+
         var user = await _dbContext.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
@@ -198,19 +219,36 @@ public class AuthService : IAuthService
         {
             user.FailedLoginCount++;
             user.UpdatedAt = DateTime.UtcNow;
-            if (user.FailedLoginCount >= 5)
+            if (user.FailedLoginCount >= MaxAttempts)
             {
                 user.Status = Domain.Enums.UserStatus.Locked;
-                user.LockedUntil = DateTime.UtcNow.AddMinutes(15);
+                user.LockedUntil = DateTime.UtcNow.AddMinutes(BlockDuration.TotalMinutes);
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(ip))
+            {
+                var attempts = await _cache.IncrementAsync(GetAttemptsKey(ip), 1, AttemptWindow);
+                if (attempts >= MaxAttempts)
+                {
+                    await _cache.SetAsync(GetBlockKey(ip), "1", BlockDuration);
+                }
+            }
+
             throw new InvalidOperationException("Invalid credentials.");
         }
 
         user.FailedLoginCount = 0;
         user.LastLoginAt = DateTime.UtcNow;
         user.UpdatedAt = DateTime.UtcNow;
+
+        var clientIp = GetClientIp();
+        if (!string.IsNullOrWhiteSpace(clientIp))
+        {
+            await _cache.RemoveAsync(GetAttemptsKey(clientIp));
+            await _cache.RemoveAsync(GetBlockKey(clientIp));
+        }
 
         var role = user.UserRoles.Select(u => u.Role.Code).FirstOrDefault() ?? "BUYER";
         var scope = role.ToLowerInvariant();
@@ -314,15 +352,17 @@ public class AuthService : IAuthService
         };
 
         _dbContext.PasswordResetTokens.Add(resetToken);
-        _dbContext.OutboxMessages.Add(new Nexus.Abstractions.Outbox.OutboxMessage
-        {
-            Id = Guid.NewGuid(),
-            AggregateType = "User",
-            AggregateId = user.Id,
-            EventType = "email.reset-password",
-            Payload = JsonSerializer.Serialize(new { user.Email, token, userId = user.Id }),
-            CreatedAt = DateTime.UtcNow
-        });
+
+        //chưa thống nhất cách quản lý push thông báo message ở đây? 1 là call api bên service Notification hay là call dbcontext chung để add vào.
+        //_dbContext.OutboxMessages.Add(new Nexus.Abstractions.Outbox.OutboxMessage
+        //{
+        //    Id = Guid.NewGuid(),
+        //    AggregateType = "User",
+        //    AggregateId = user.Id,
+        //    EventType = "email.reset-password",
+        //    Payload = JsonSerializer.Serialize(new { user.Email, token, userId = user.Id }),
+        //    CreatedAt = DateTime.UtcNow
+        //});
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -406,6 +446,30 @@ public class AuthService : IAuthService
         var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(token));
         return Convert.ToHexString(hash);
     }
+
+    private string? GetClientIp()
+    {
+        try
+        {
+            var ctx = _httpContextAccessor.HttpContext;
+            if (ctx is null) return null;
+            // Prefer X-Forwarded-For when behind proxies
+            if (ctx.Request.Headers.TryGetValue("X-Forwarded-For", out var vals))
+            {
+                var first = vals.ToString().Split(',').Select(s => s.Trim()).FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(first)) return first;
+            }
+
+            return ctx.Connection.RemoteIpAddress?.ToString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string GetAttemptsKey(string ip) => $"auth:attempts:ip:{ip}";
+    private static string GetBlockKey(string ip) => $"auth:block:ip:{ip}";
 
     private string GetEmailVerificationBody(string fullName, string token)
     {

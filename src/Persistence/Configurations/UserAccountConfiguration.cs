@@ -32,8 +32,11 @@ public sealed class UserAccountConfiguration : IEntityTypeConfiguration<UserAcco
         builder.HasIndex(u => u.Email).IsUnique();
         builder.HasIndex(u => u.Status);
 
-        builder.HasCheckConstraint("CK_User_status", "status IN ('ACTIVE','LOCKED','INACTIVE')");
-        builder.HasCheckConstraint("CK_User_gender", "gender IS NULL OR gender IN ('MALE','FEMALE','OTHER')");
-        builder.HasCheckConstraint("CK_User_failed_login", "failed_login_count >= 0");
+        builder.ToTable(b =>
+        {
+            b.HasCheckConstraint("CK_User_status", "status IN ('ACTIVE','LOCKED','INACTIVE')");
+            b.HasCheckConstraint("CK_User_gender", "gender IS NULL OR gender IN ('MALE','FEMALE','OTHER')");
+            b.HasCheckConstraint("CK_User_failed_login", "failed_login_count >= 0");
+        });
     }
 }

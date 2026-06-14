@@ -29,9 +29,7 @@ public class UserAccount : Entity, IAuditableEntity
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new HashSet<PasswordResetToken>();
     public ICollection<UserPreference> Preferences { get; set; } = new HashSet<UserPreference>();
     public ICollection<EmailVerification> EmailVerifications { get; set; } = new HashSet<EmailVerification>();
-    [InverseProperty(nameof(RatingReview.RaterUser))]
     public ICollection<RatingReview> RatingsGiven { get; set; } = new HashSet<RatingReview>();
-    [InverseProperty(nameof(RatingReview.RatedUser))]
     public ICollection<RatingReview> RatingsReceived { get; set; } = new HashSet<RatingReview>();
     public ICollection<PenaltyViolation> PenaltyViolations { get; set; } = new HashSet<PenaltyViolation>();
     public ICollection<ReputationProfile> ReputationProfiles { get; set; } = new HashSet<ReputationProfile>();

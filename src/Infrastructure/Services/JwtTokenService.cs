@@ -19,8 +19,14 @@ public class JwtTokenService : IJwtTokenService
     public JwtTokenService(IOptions<AuthOptions> options)
     {
         _options = options.Value;
-        var secret = Encoding.UTF8.GetBytes(_options.Secret ?? throw new InvalidOperationException("Auth:Secret is required."));
-        var key = new SymmetricSecurityKey(secret);
+        var secretValue = _options.Secret ?? throw new InvalidOperationException("Auth:Secret is required.");
+        var secretBytes = Encoding.UTF8.GetBytes(secretValue);
+        if (secretBytes.Length < 32)
+        {
+            throw new InvalidOperationException("Auth:Secret must be at least 32 bytes when UTF-8 encoded.");
+        }
+
+        var key = new SymmetricSecurityKey(secretBytes);
         _signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         _tokenValidationParameters = new TokenValidationParameters
