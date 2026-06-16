@@ -23,6 +23,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<CurrentUser>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddHttpClient<IGoogleTokenVerifier, GoogleTokenVerifier>();
+        services.AddHttpClient<IFacebookTokenVerifier, FacebookTokenVerifier>();
 
         var redisConnection = configuration.GetSection("Redis")["Connection"];
         if (!string.IsNullOrWhiteSpace(redisConnection))

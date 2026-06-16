@@ -9,6 +9,7 @@ using Nexus.User.Application.Services;
 using Nexus.User.Application.Dtos;
 using Nexus.User.Domain.Entities;
 using Nexus.User.Infrastructure.Persistence;
+using Nexus.User.Infrastructure.Services;
 using RoleEntity = Nexus.User.Domain.Entities.Role;
 
 namespace Nexus.User.Api.Services;
@@ -22,6 +23,8 @@ public class AuthService : IAuthService
     private readonly AuthOptions _options;
     private readonly IEmailSender _emailSender;
     private readonly EmailOptions _emailOptions;
+    private readonly IGoogleTokenVerifier _googleTokenVerifier;
+    private readonly IFacebookTokenVerifier _facebookTokenVerifier;
 
     public AuthService(
         UserDbContext dbContext,
@@ -30,7 +33,9 @@ public class AuthService : IAuthService
         IHttpContextAccessor httpContextAccessor,
         IOptions<AuthOptions> authOptions,
         IEmailSender emailSender,
-        IOptions<EmailOptions> emailOptions)
+        IOptions<EmailOptions> emailOptions,
+        IGoogleTokenVerifier googleTokenVerifier,
+        IFacebookTokenVerifier facebookTokenVerifier)
     {
         _dbContext = dbContext;
         _jwtTokenService = jwtTokenService;
@@ -39,6 +44,8 @@ public class AuthService : IAuthService
         _options = authOptions.Value;
         _emailSender = emailSender;
         _emailOptions = emailOptions.Value;
+        _googleTokenVerifier = googleTokenVerifier;
+        _facebookTokenVerifier = facebookTokenVerifier;
     }
 
     public async Task RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
@@ -256,6 +263,177 @@ public class AuthService : IAuthService
             RefreshToken = refreshToken,
             RefreshTokenExpiresIn = _options.RefreshTokenExpiryDays * 24 * 60 * 60
         };
+    }
+
+    public async Task SendLoginOtpAsync(SendOtpRequest request, CancellationToken cancellationToken = default)
+    {
+        var phone = NormalizePhoneNumber(request.PhoneNumber);
+        if (!Regex.IsMatch(phone, "^(0\\d{9})$"))
+        {
+            throw new InvalidOperationException("SDT khong hop le");
+        }
+
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone, cancellationToken);
+        if (user is null)
+        {
+            return;
+        }
+
+        var attemptsKey = GetOtpAttemptsKey(phone);
+        var attempts = await _cache.IncrementAsync(attemptsKey, 1, TimeSpan.FromMinutes(_options.OtpAttemptWindowMinutes));
+        if (attempts > _options.OtpAttemptLimit)
+        {
+            throw new InvalidOperationException("Too many OTP requests. Try again later.");
+        }
+
+        var otp = GenerateVerificationCode();
+        await _cache.SetAsync(GetOtpKey(phone), otp, TimeSpan.FromMinutes(_options.OtpExpiryMinutes));
+
+        Console.WriteLine($"[DEV OTP] phone={phone}, otp={otp}");
+
+        _dbContext.AuditLogs.Add(new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            ActorUserId = user.Id,
+            Action = "OTP_SENT",
+            TargetType = "User",
+            TargetRefId = user.Id,
+            DetailJson = JsonSerializer.Serialize(new { user.PhoneNumber }),
+            IpAddress = GetClientIp(),
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<AuthResponse> LoginWithOtpAsync(LoginOtpRequest request, CancellationToken cancellationToken = default)
+    {
+        var phone = NormalizePhoneNumber(request.PhoneNumber);
+        if (!Regex.IsMatch(phone, "^(0\\d{9})$"))
+        {
+            throw new InvalidOperationException("SDT khong hop le");
+        }
+
+        var user = await _dbContext.Users
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.PhoneNumber == phone, cancellationToken);
+
+        if (user is null)
+        {
+            throw new InvalidOperationException("Invalid credentials.");
+        }
+
+        var expectedOtp = await _cache.GetAsync(GetOtpKey(phone));
+        if (string.IsNullOrWhiteSpace(expectedOtp) || expectedOtp != request.OtpCode)
+        {
+            throw new InvalidOperationException("Invalid credentials.");
+        }
+
+        await _cache.RemoveAsync(GetOtpKey(phone));
+
+        user.ResetFailedLogin();
+        user.Status = Domain.Enums.UserStatus.Active;
+        user.LockedUntil = null;
+        user.UpdateLastLogin(DateTime.UtcNow);
+
+        var role = user.UserRoles.Select(u => u.Role.Code).FirstOrDefault() ?? "BUYER";
+        var scope = role.ToLowerInvariant();
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return await CreateSessionAsync(user, role, scope, cancellationToken);
+    }
+
+    public async Task<AuthResponse> OAuthLoginAsync(OAuthLoginRequest request, CancellationToken cancellationToken = default)
+    {
+        var provider = request.Provider.Trim().ToLowerInvariant();
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+
+        OAuthTokenPayload payload = provider switch
+        {
+            "google" => await _googleTokenVerifier.VerifyAsync(request.IdToken, cancellationToken),
+            "facebook" => await _facebookTokenVerifier.VerifyAsync(request.IdToken, cancellationToken),
+            _ => throw new InvalidOperationException("Unsupported OAuth provider.")
+        };
+
+        if (!string.Equals(payload.Email.Trim().ToLowerInvariant(), normalizedEmail, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("OAuth email does not match the provided email.");
+        }
+
+        var user = await _dbContext.Users
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Email == normalizedEmail, cancellationToken);
+
+        if (user is null)
+        {
+            user = new UserAccount
+            {
+                Id = Guid.NewGuid(),
+                Email = normalizedEmail,
+                FullName = string.IsNullOrWhiteSpace(request.FullName) ? payload.FullName : request.FullName,
+                PhoneNumber = null,
+                PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(Guid.NewGuid().ToString("N")),
+                Status = Domain.Enums.UserStatus.Active,
+                IsEmailVerified = payload.EmailVerified,
+                EmailVerifiedAt = payload.EmailVerified ? DateTime.UtcNow : null,
+                FailedLoginCount = 0,
+                IsDeleted = false,
+                OAuthProvider = provider,
+                OAuthProviderId = payload.ProviderId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var role = await _dbContext.Roles.FirstOrDefaultAsync(r => r.Code == "BUYER", cancellationToken);
+            if (role is null)
+            {
+                role = new RoleEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Code = "BUYER",
+                    Name = "Buyer",
+                    IsDeleted = false,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _dbContext.Roles.Add(role);
+            }
+
+            var userRole = new UserRole
+            {
+                Id = Guid.NewGuid(),
+                User = user,
+                Role = role,
+                AssignedAt = DateTime.UtcNow
+            };
+
+            _dbContext.Users.Add(user);
+            _dbContext.UserRoles.Add(userRole);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            user.OAuthProvider = provider;
+            user.OAuthProviderId = payload.ProviderId;
+            if (string.IsNullOrWhiteSpace(user.FullName) && !string.IsNullOrWhiteSpace(request.FullName))
+            {
+                user.FullName = request.FullName;
+            }
+
+            user.IsEmailVerified = payload.EmailVerified || user.IsEmailVerified;
+            user.EmailVerifiedAt ??= payload.EmailVerified ? DateTime.UtcNow : user.EmailVerifiedAt;
+            user.ResetFailedLogin();
+            user.Status = Domain.Enums.UserStatus.Active;
+            user.LockedUntil = null;
+            user.UpdateLastLogin(DateTime.UtcNow);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        var userRoleCode = user.UserRoles.Select(u => u.Role.Code).FirstOrDefault() ?? "BUYER";
+        var scope = userRoleCode.ToLowerInvariant();
+        return await CreateSessionAsync(user, userRoleCode, scope, cancellationToken);
     }
 
     public async Task<AuthResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
@@ -519,6 +697,41 @@ public class AuthService : IAuthService
         return body.ToString();
     }
 
+    private async Task<AuthResponse> CreateSessionAsync(UserAccount user, string role, string scope, CancellationToken cancellationToken)
+    {
+        var accessToken = _jwtTokenService.CreateAccessToken(user, role, scope, out var accessJti);
+        var refreshToken = _jwtTokenService.CreateRefreshToken();
+        var accessHash = HashToken(accessToken);
+        var refreshHash = HashToken(refreshToken);
+
+        var session = new UserSession
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = accessHash,
+            AccessJti = accessJti,
+            RefreshTokenHash = refreshHash,
+            RefreshExpiresAt = DateTime.UtcNow.AddDays(_options.RefreshTokenExpiryDays),
+            LoginAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(_options.AccessTokenExpiryMinutes),
+            Status = "ACTIVE",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _dbContext.UserSessions.Add(session);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await CacheSessionAsync(session, user.Id, role, scope);
+
+        return new AuthResponse
+        {
+            AccessToken = accessToken,
+            AccessTokenExpiresIn = _options.AccessTokenExpiryMinutes * 60,
+            RefreshToken = refreshToken,
+            RefreshTokenExpiresIn = _options.RefreshTokenExpiryDays * 24 * 60 * 60
+        };
+    }
+
     private string GetPasswordChangedConfirmationBody(string fullName)
     {
         var name = string.IsNullOrWhiteSpace(fullName) ? "Người dùng" : fullName;
@@ -562,6 +775,9 @@ public class AuthService : IAuthService
     }
 
     private static string GetForgotPasswordAttemptsKey(string email) => $"forgot_password_attempts:{email}";
+    private static string GetOtpKey(string phone) => $"auth:otp:{phone}";
+    private static string GetOtpAttemptsKey(string phone) => $"auth:otp:attempts:{phone}";
+    private static string NormalizePhoneNumber(string phone) => phone?.Trim() ?? string.Empty;
 
     private async Task BlacklistAccessJtiAsync(string jti, TimeSpan expiry)
     {

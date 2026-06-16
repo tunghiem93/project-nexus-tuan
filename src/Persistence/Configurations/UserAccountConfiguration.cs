@@ -26,10 +26,14 @@ public sealed class UserAccountConfiguration : IEntityTypeConfiguration<UserAcco
         builder.Property(u => u.LockedUntil).HasColumnName("locked_until");
         builder.Property(u => u.LastLoginAt).HasColumnName("last_login_at");
         builder.Property(u => u.IsDeleted).HasColumnName("is_deleted").IsRequired();
+        builder.Property(u => u.OAuthProvider).HasColumnName("oauth_provider").HasMaxLength(50).IsRequired(false);
+        builder.Property(u => u.OAuthProviderId).HasColumnName("oauth_provider_id").HasMaxLength(100).IsRequired(false);
         builder.Property(u => u.CreatedAt).HasColumnName("created_at");
         builder.Property(u => u.UpdatedAt).HasColumnName("updated_at");
 
         builder.HasIndex(u => u.Email).IsUnique();
+        builder.HasIndex(u => u.OAuthProvider);
+        builder.HasIndex(u => u.OAuthProviderId);
         builder.HasIndex(u => u.Status);
 
         builder.ToTable(b =>

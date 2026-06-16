@@ -19,6 +19,8 @@ public class UserAccount : Entity, IAuditableEntity
     public DateTime? LockedUntil { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public bool IsDeleted { get; set; }
+    public string? OAuthProvider { get; set; }
+    public string? OAuthProviderId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

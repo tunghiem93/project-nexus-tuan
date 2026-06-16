@@ -59,6 +59,27 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("send-otp")]
+    public async Task<IActionResult> SendOtp([FromBody] SendOtpRequest request)
+    {
+        await _authService.SendLoginOtpAsync(request);
+        return NoContent();
+    }
+
+    [HttpPost("login-otp")]
+    public async Task<ActionResult<AuthResponse>> LoginWithOtp([FromBody] LoginOtpRequest request)
+    {
+        var response = await _authService.LoginWithOtpAsync(request);
+        return Ok(response);
+    }
+
+    [HttpPost("oauth")]
+    public async Task<ActionResult<AuthResponse>> OAuthLogin([FromBody] OAuthLoginRequest request)
+    {
+        var response = await _authService.OAuthLoginAsync(request);
+        return Ok(response);
+    }
+
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
     {
