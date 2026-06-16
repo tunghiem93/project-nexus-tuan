@@ -608,6 +608,12 @@ public class AuthService : IAuthService
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _emailSender.SendEmailAsync(
+            user.Email,
+            "Mật khẩu của bạn đã được thay đổi",
+            GetPasswordChangedConfirmationBody(user.FullName),
+            cancellationToken);
     }
 
     public async Task ChangePasswordAsync(Guid userId, string oldPassword, string newPassword, string accessTokenJti, CancellationToken cancellationToken = default)
@@ -642,6 +648,11 @@ public class AuthService : IAuthService
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await _emailSender.SendEmailAsync(
+            user.Email,
+            "Mật khẩu của bạn đã được thay đổi",
+            GetPasswordChangedConfirmationBody(user.FullName),
+            cancellationToken);
     }
 
     public async Task LogoutAsync(string refreshToken, CancellationToken cancellationToken = default)
