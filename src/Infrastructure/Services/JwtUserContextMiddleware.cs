@@ -17,7 +17,8 @@ public class JwtUserContextMiddleware
     {
         if (context.User?.Identity?.IsAuthenticated == true)
         {
-            var subject = context.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            var subject = context.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                       ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var role = context.User.FindFirst(ClaimTypes.Role)?.Value;
             var scope = context.User.FindFirst("scope")?.Value;
             var jti = context.User.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;

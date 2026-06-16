@@ -399,6 +399,26 @@ public class AuthService : IAuthService
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task LogoutAsync(string refreshToken, CancellationToken cancellationToken = default)
+    {
+        var refreshHash = HashToken(refreshToken);
+        var session = await _dbContext.UserSessions.FirstOrDefaultAsync(s => s.RefreshTokenHash == refreshHash, cancellationToken);
+        if (session is null)
+        {
+            return;
+        }
+
+        session.Status = "REVOKED";
+        session.LogoutAt = DateTime.UtcNow;
+        session.UpdatedAt = DateTime.UtcNow;
+
+        _dbContext.UserSessions.Update(session);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var expiry = session.RefreshExpiresAt.HasValue ? session.RefreshExpiresAt.Value - DateTime.UtcNow : TimeSpan.Zero;
+        await BlacklistRefreshHashAsync(refreshHash, expiry);
+    }
+
     private static string HashToken(string token)
     {
         using var sha256 = SHA256.Create();
