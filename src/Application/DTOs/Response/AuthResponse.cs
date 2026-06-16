@@ -1,4 +1,4 @@
-namespace Nexus.User.Application.Dtos;
+namespace Nexus.User.Application.DTOs.Response;
 
 public sealed class AuthResponse
 {

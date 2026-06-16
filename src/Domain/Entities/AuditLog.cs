@@ -11,4 +11,6 @@ public class AuditLog : Entity
     public string? DetailJson { get; set; }
     public string? IpAddress { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    public UserAccount? ActorUser { get; set; }
 }

@@ -11,6 +11,7 @@ using Nexus.User.Domain.Entities;
 using Nexus.User.Infrastructure.Persistence;
 using Nexus.User.Infrastructure.Services;
 using RoleEntity = Nexus.User.Domain.Entities.Role;
+using Nexus.User.Application.DTOs.Response;
 
 namespace Nexus.User.Api.Services;
 
@@ -265,29 +266,49 @@ public class AuthService : IAuthService
         };
     }
 
-    public async Task SendLoginOtpAsync(SendOtpRequest request, CancellationToken cancellationToken = default)
+    public async Task<SendOtpResponse> SendLoginOtpAsync(
+        SendOtpRequest request,
+        CancellationToken cancellationToken = default)
     {
         var phone = NormalizePhoneNumber(request.PhoneNumber);
+
         if (!Regex.IsMatch(phone, "^(0\\d{9})$"))
         {
             throw new InvalidOperationException("SDT khong hop le");
         }
 
-        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone, cancellationToken);
+        var user = await _dbContext.Users
+            .FirstOrDefaultAsync(u => u.PhoneNumber == phone, cancellationToken);
+
         if (user is null)
         {
-            return;
+            return new SendOtpResponse
+            {
+                Success = true
+            };
         }
 
         var attemptsKey = GetOtpAttemptsKey(phone);
-        var attempts = await _cache.IncrementAsync(attemptsKey, 1, TimeSpan.FromMinutes(_options.OtpAttemptWindowMinutes));
+
+        var attempts = await _cache.IncrementAsync(
+            attemptsKey,
+            1,
+            TimeSpan.FromMinutes(_options.OtpAttemptWindowMinutes));
+
         if (attempts > _options.OtpAttemptLimit)
         {
-            throw new InvalidOperationException("Too many OTP requests. Try again later.");
+            throw new InvalidOperationException(
+                "Too many OTP requests. Try again later.");
         }
 
-        var otp = GenerateVerificationCode();
-        await _cache.SetAsync(GetOtpKey(phone), otp, TimeSpan.FromMinutes(_options.OtpExpiryMinutes));
+        //var otp = GenerateVerificationCode();
+        // DEV ONLY 
+        var otp = "123456";
+
+        await _cache.SetAsync(
+            GetOtpKey(phone),
+            otp,
+            TimeSpan.FromMinutes(_options.OtpExpiryMinutes));
 
         Console.WriteLine($"[DEV OTP] phone={phone}, otp={otp}");
 
@@ -304,6 +325,12 @@ public class AuthService : IAuthService
         });
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return new SendOtpResponse
+        {
+            Success = true,
+            Otp = otp
+        };
     }
 
     public async Task<AuthResponse> LoginWithOtpAsync(LoginOtpRequest request, CancellationToken cancellationToken = default)

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Nexus.User.Application.Services;
 using Nexus.User.Application.Dtos;
+using Nexus.User.Application.DTOs.Response;
 
 namespace Nexus.User.Api.Controllers;
 
@@ -62,8 +63,9 @@ public class AuthController : ControllerBase
     [HttpPost("send-otp")]
     public async Task<IActionResult> SendOtp([FromBody] SendOtpRequest request)
     {
-        await _authService.SendLoginOtpAsync(request);
-        return NoContent();
+        var response = await _authService.SendLoginOtpAsync(request);
+        return Ok(response);
+        //return NoContent();
     }
 
     [HttpPost("login-otp")]

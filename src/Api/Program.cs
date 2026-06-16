@@ -33,6 +33,7 @@ builder.Services.PostConfigure<EmailOptions>(opts =>
 builder.Services.AddUserInfrastructure(builder.Configuration);
 builder.Services.AddUserApplication();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IOtpProvider, OtpProvider>();
 builder.Services.AddHostedService<TokenCleanupService>();
 // The API layer only exposes host-specific middleware and routing.
 // Infrastructure services like JWT, email, cache, and user context are registered in Infrastructure.
