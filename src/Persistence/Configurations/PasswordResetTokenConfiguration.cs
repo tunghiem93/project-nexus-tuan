@@ -21,6 +21,7 @@ public sealed class PasswordResetTokenConfiguration : IEntityTypeConfiguration<P
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
 
         builder.HasIndex(x => x.UserId).HasDatabaseName("IX_PasswordReset_user");
+        builder.HasIndex(x => x.TokenHash).HasDatabaseName("IX_PasswordReset_token");
 
         builder.HasOne(x => x.User)
             .WithMany(u => u.PasswordResetTokens)

@@ -1,6 +1,8 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.IdentityModel.Tokens;
 using Nexus.User.Application;
 using Nexus.User.Application.Services;
@@ -17,10 +19,20 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddNexusApi("user");
 
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
+// Bind Email options and allow SmtpPass to be provided via environment variable (SMTP_PASS)
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
+builder.Services.PostConfigure<EmailOptions>(opts =>
+{
+    if (string.IsNullOrWhiteSpace(opts.SmtpPass))
+    {
+        opts.SmtpPass = Environment.GetEnvironmentVariable("SMTP_PASS")
+                        ?? builder.Configuration["Email:SmtpPass"];
+    }
+});
 builder.Services.AddUserInfrastructure(builder.Configuration);
 builder.Services.AddUserApplication();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddHostedService<TokenCleanupService>();
 // The API layer only exposes host-specific middleware and routing.
 // Infrastructure services like JWT, email, cache, and user context are registered in Infrastructure.
 
@@ -45,6 +57,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 builder.Services.AddGrpc();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<Nexus.User.Application.Validators.RegisterRequestValidator>();
 
 builder.AddNexusDbHealthCheck<UserDbContext>();
 

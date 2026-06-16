@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Nexus.User.Application;
@@ -42,6 +43,17 @@ public class AuthService : IAuthService
 
     public async Task RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
+        if (!string.IsNullOrWhiteSpace(request.Phone)
+            && !Regex.IsMatch(request.Phone, "^(0\\d{9})$"))
+        {
+            throw new InvalidOperationException("SDT khong hop le");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password) || !IsPasswordValid(request.Password))
+        {
+            throw new InvalidOperationException("Password must be at least 8 characters long and include at least one uppercase letter, one digit, and one special character.");
+        }
+
         if (await _dbContext.Users.AnyAsync(u => u.Email == request.Email || u.PhoneNumber == request.Phone, cancellationToken))
         {
             throw new InvalidOperationException("Email or phone already exists.");
@@ -199,6 +211,8 @@ public class AuthService : IAuthService
         }
 
         user.FailedLoginCount = 0;
+        user.Status = Domain.Enums.UserStatus.Active;
+        user.LockedUntil = null;
         user.LastLoginAt = DateTime.UtcNow;
         user.UpdatedAt = DateTime.UtcNow;
 
@@ -290,6 +304,14 @@ public class AuthService : IAuthService
 
     public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
     {
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var forgotPasswordAttemptsKey = GetForgotPasswordAttemptsKey(normalizedEmail);
+        var requestCount = await _cache.IncrementAsync(forgotPasswordAttemptsKey, 1, TimeSpan.FromMinutes(5));
+        if (requestCount > 3)
+        {
+            throw new InvalidOperationException("Too many password reset requests. Try again later.");
+        }
+
         var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
         if (user is null)
         {
@@ -311,17 +333,17 @@ public class AuthService : IAuthService
         };
 
         _dbContext.PasswordResetTokens.Add(resetToken);
-
-        //chưa thống nhất cách quản lý push thông báo message ở đây? 1 là call api bên service Notification hay là call dbcontext chung để add vào.
-        //_dbContext.OutboxMessages.Add(new Nexus.Abstractions.Outbox.OutboxMessage
-        //{
-        //    Id = Guid.NewGuid(),
-        //    AggregateType = "User",
-        //    AggregateId = user.Id,
-        //    EventType = "email.reset-password",
-        //    Payload = JsonSerializer.Serialize(new { user.Email, token, userId = user.Id }),
-        //    CreatedAt = DateTime.UtcNow
-        //});
+        _dbContext.AuditLogs.Add(new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            ActorUserId = null,
+            Action = "PASSWORD_RESET_REQUESTED",
+            TargetType = "User",
+            TargetRefId = user.Id,
+            DetailJson = JsonSerializer.Serialize(new { user.Email }),
+            IpAddress = GetClientIp(),
+            CreatedAt = DateTime.UtcNow
+        });
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -344,8 +366,25 @@ public class AuthService : IAuthService
         }
 
         var user = resetToken.User;
+        if (BCrypt.Net.BCrypt.EnhancedVerify(request.NewPassword, user.PasswordHash))
+        {
+            throw new InvalidOperationException("New password must be different from the current password.");
+        }
+
         user.PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(request.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;
+        _dbContext.AuditLogs.Add(new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            ActorUserId = user.Id,
+            Action = "PASSWORD_RESET_COMPLETED",
+            TargetType = "User",
+            TargetRefId = user.Id,
+            DetailJson = JsonSerializer.Serialize(new { user.Email }),
+            IpAddress = GetClientIp(),
+            CreatedAt = DateTime.UtcNow
+        });
+
         resetToken.Status = "USED";
         resetToken.UsedAt = DateTime.UtcNow;
         resetToken.UpdatedAt = DateTime.UtcNow;
@@ -516,6 +555,13 @@ public class AuthService : IAuthService
 
         await _cache.SetAsync(GetRefreshBlacklistKey(refreshHash), "1", expiry);
     }
+
+    private static bool IsPasswordValid(string password)
+    {
+        return Regex.IsMatch(password, "^(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z0-9]).{8,}$");
+    }
+
+    private static string GetForgotPasswordAttemptsKey(string email) => $"forgot_password_attempts:{email}";
 
     private async Task BlacklistAccessJtiAsync(string jti, TimeSpan expiry)
     {

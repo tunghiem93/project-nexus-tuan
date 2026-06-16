@@ -19,6 +19,7 @@ public sealed class EmailVerificationConfiguration : IEntityTypeConfiguration<Em
         builder.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).IsRequired();
 
         builder.HasIndex(x => x.UserId).HasDatabaseName("IX_EmailVerification_user");
+        builder.HasIndex(x => x.VerificationTokenHash).HasDatabaseName("IX_EmailVerification_token");
 
         builder.HasOne(x => x.User)
             .WithMany(u => u.EmailVerifications)

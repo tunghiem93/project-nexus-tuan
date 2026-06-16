@@ -26,6 +26,7 @@ public sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSess
 
         builder.HasIndex(x => x.UserId).HasDatabaseName("IX_UserSession_user");
         builder.HasIndex(x => x.TokenHash).HasDatabaseName("IX_UserSession_token");
+        builder.HasIndex(x => x.RefreshTokenHash).HasDatabaseName("IX_UserSession_refresh_token");
 
         builder.HasOne(x => x.User)
             .WithMany(u => u.Sessions)
