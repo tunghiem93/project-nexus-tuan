@@ -25,8 +25,9 @@ builder.Services.PostConfigure<EmailOptions>(opts =>
 {
     if (string.IsNullOrWhiteSpace(opts.SmtpPass))
     {
-        opts.SmtpPass = Environment.GetEnvironmentVariable("SMTP_PASS")
-                        ?? builder.Configuration["Email:SmtpPass"];
+        var envPass = Environment.GetEnvironmentVariable("SMTP_PASS");
+        var configPass = builder.Configuration["Email:SmtpPass"];
+        opts.SmtpPass = envPass ?? configPass ?? string.Empty;
     }
 });
 builder.Services.AddUserInfrastructure(builder.Configuration);
