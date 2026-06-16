@@ -24,7 +24,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
-    <PackageReference Include="FluentValidation.AspNetCore" Version="11.8.0" />
+    <PackageReference Include="FluentValidation.AspNetCore" />
   </ItemGroup>
   <ItemGroup>
     <Protobuf Include="Protos\user.proto" GrpcServices="Server" />
