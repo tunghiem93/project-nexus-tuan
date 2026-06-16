@@ -49,7 +49,7 @@ public class AuthService : IAuthService
         _facebookTokenVerifier = facebookTokenVerifier;
     }
 
-    public async Task RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+    public async Task<Guid> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
         if (!string.IsNullOrWhiteSpace(request.Phone)
             && !Regex.IsMatch(request.Phone, "^(0\\d{9})$"))
@@ -131,12 +131,13 @@ public class AuthService : IAuthService
                 user.Email,
                 "Xác minh email đăng ký",
                 GetEmailVerificationBody(user.FullName, verificationCode));
-
         }
         catch (Exception)
         {
             throw;
         }
+
+        return user.Id;
     }
 
     public async Task VerifyEmailAsync(string code, CancellationToken cancellationToken = default)

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Nexus.User.Api.Models;
 using Nexus.User.Application.Services;
 using Nexus.User.Application.Dtos;
 using Nexus.User.Application.DTOs.Response;
@@ -20,80 +21,79 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        await _authService.RegisterAsync(request);
-        return NoContent();
+        var userId = await _authService.RegisterAsync(request);
+        return StatusCode(201, ApiResponse<object>.Success(new { userId }, 201, "Registration successful, please check your email to verify"));
     }
 
     [HttpPost("verify-email")]
     public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
     {
         await _authService.VerifyEmailAsync(request.Code);
-        return NoContent();
+        return Ok(ApiResponse<object>.Success(null, 200, "Email verified successfully"));
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         try
         {
             var response = await _authService.LoginAsync(request);
-            return Ok(response);
+            return Ok(ApiResponse<AuthResponse>.Success(response, 200, "Login successful"));
         }
         catch (InvalidOperationException ex) when (ex.Message == "Account is locked.")
         {
-            return StatusCode(423, new { error = ex.Message });
+            return StatusCode(423, ApiResponse<object>.Failure(ex.Message, 423));
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Too many attempts"))
         {
-            return StatusCode(429, new { error = ex.Message });
+            return StatusCode(429, ApiResponse<object>.Failure(ex.Message, 429));
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
-            return Unauthorized();
+            return Unauthorized(ApiResponse<object>.Failure("Incorrect email or password.", 401));
         }
     }
 
     [HttpPost("refresh-token")]
-    public async Task<ActionResult<AuthResponse>> RefreshToken([FromBody] RefreshTokenRequest request)
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
     {
         var response = await _authService.RefreshTokenAsync(request.RefreshToken);
-        return Ok(response);
+        return Ok(ApiResponse<AuthResponse>.Success(response, 200, "Token refreshed successfully"));
     }
 
     [HttpPost("send-otp")]
     public async Task<IActionResult> SendOtp([FromBody] SendOtpRequest request)
     {
         var response = await _authService.SendLoginOtpAsync(request);
-        return Ok(response);
-        //return NoContent();
+        return Ok(ApiResponse<SendOtpResponse>.Success(response, 200, "OTP sent successfully"));
     }
 
     [HttpPost("login-otp")]
-    public async Task<ActionResult<AuthResponse>> LoginWithOtp([FromBody] LoginOtpRequest request)
+    public async Task<IActionResult> LoginWithOtp([FromBody] LoginOtpRequest request)
     {
         var response = await _authService.LoginWithOtpAsync(request);
-        return Ok(response);
+        return Ok(ApiResponse<AuthResponse>.Success(response, 200, "Login successful"));
     }
 
     [HttpPost("oauth")]
-    public async Task<ActionResult<AuthResponse>> OAuthLogin([FromBody] OAuthLoginRequest request)
+    public async Task<IActionResult> OAuthLogin([FromBody] OAuthLoginRequest request)
     {
         var response = await _authService.OAuthLoginAsync(request);
-        return Ok(response);
+        return Ok(ApiResponse<AuthResponse>.Success(response, 200, "Login successful"));
     }
 
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
     {
         await _authService.ForgotPasswordAsync(request);
-        return NoContent();
+        return Ok(ApiResponse<object>.Success(null, 200, "If the email exists, a reset link has been sent"));
     }
 
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
     {
         await _authService.ResetPasswordAsync(request);
-        return NoContent();
+        return Ok(ApiResponse<object>.Success(null, 200, "Password reset successful"));
     }
 
     [HttpPost("logout")]
@@ -101,6 +101,6 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
     {
         await _authService.LogoutAsync(request.RefreshToken);
-        return NoContent();
+        return Ok(ApiResponse<object>.Success(null, 200, "Logout successful"));
     }
 }
